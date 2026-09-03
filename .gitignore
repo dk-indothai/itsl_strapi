@@ -129,3 +129,6 @@ dist
 build
 .strapi-updater.json
 .strapi-cloud.json
+
+# Google Cloud service account credentials
+gcs_service_account.json

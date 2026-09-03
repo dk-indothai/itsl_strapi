@@ -1,3 +1,5 @@
+import { existsSync, readFileSync } from 'node:fs';
+import path from 'node:path';
 import type { Core } from '@strapi/strapi';
 
 const allowedMediaTypes = [
@@ -23,23 +25,46 @@ const deniedTypes = [
   'application/x-mach-binary',
 ];
 
-const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => ({
-  'users-permissions': {
-    config: {
-      jwtManagement: 'refresh',
-      sessions: {
-        httpOnly: true,
+const config = ({ env }: Core.Config.Shared.ConfigParams): Core.Config.Plugin => {
+  const configuredServiceAccountPath = env('GCS_SERVICE_ACCOUNT_PATH');
+  const localServiceAccountPath = path.resolve(process.cwd(), 'gcs_service_account.json');
+  const serviceAccountPath = configuredServiceAccountPath
+    ? path.resolve(process.cwd(), configuredServiceAccountPath)
+    : existsSync(localServiceAccountPath)
+      ? localServiceAccountPath
+      : undefined;
+  const serviceAccount = serviceAccountPath
+    ? JSON.parse(readFileSync(serviceAccountPath, 'utf8'))
+    : undefined;
+
+  return {
+    'users-permissions': {
+      config: {
+        jwtManagement: 'refresh',
+        sessions: {
+          httpOnly: true,
+        },
       },
     },
-  },
-  upload: {
-    config: {
-      security: {
-        allowedTypes: allowedMediaTypes,
-        deniedTypes,
+    upload: {
+      config: {
+        provider: '@strapi-community/strapi-provider-upload-google-cloud-storage',
+        providerOptions: {
+          bucketName: env('GCS_BUCKET_NAME'),
+          basePath: env('GCS_BASE_PATH', ''),
+          baseUrl: env('GCS_BASE_URL', 'https://storage.googleapis.com/{bucket-name}'),
+          publicFiles: env.bool('GCS_PUBLIC_FILES', true),
+          uniform: env.bool('GCS_UNIFORM', true),
+          skipCheckBucket: env.bool('GCS_SKIP_CHECK_BUCKET', false),
+          ...(serviceAccount ? { serviceAccount } : {}),
+        },
+        security: {
+          allowedTypes: allowedMediaTypes,
+          deniedTypes,
+        },
       },
     },
-  },
-});
+  };
+};
 
 export default config;
