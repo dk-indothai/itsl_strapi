@@ -515,10 +515,7 @@ export interface ApiSoftwareSoftware extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    artifact: Schema.Attribute.Media<
-      'images' | 'files' | 'videos' | 'audios',
-      true
-    >;
+    artifact: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
