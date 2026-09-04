@@ -1,0 +1,61 @@
+{
+  "kind": "collectionType",
+  "collectionName": "complaints",
+  "info": {
+    "singularName": "complaint",
+    "pluralName": "complaints",
+    "displayName": "complaint"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "client_id": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "mobile_no": {
+      "type": "string",
+      "required": true
+    },
+    "issue": {
+      "type": "enumeration",
+      "required": true,
+      "enum": [
+        "Account Opening",
+        "Trade Related Query",
+        "Technical Issue",
+        "Fund Related",
+        "Demat Related",
+        "Others"
+      ]
+    },
+    "subject": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "text",
+      "required": true
+    },
+    "attachment": {
+      "type": "media",
+      "multiple": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    }
+  }
+}

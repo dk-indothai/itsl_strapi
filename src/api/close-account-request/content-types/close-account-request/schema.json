@@ -1,0 +1,31 @@
+{
+  "kind": "collectionType",
+  "collectionName": "close_account_requests",
+  "info": {
+    "singularName": "close-account-request",
+    "pluralName": "close-account-requests",
+    "displayName": "close_account_request"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "bo_id": {
+      "type": "string",
+      "required": true
+    },
+    "ucc": {
+      "type": "string",
+      "required": true
+    },
+    "email": {
+      "type": "email",
+      "required": true
+    },
+    "mobile_no": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

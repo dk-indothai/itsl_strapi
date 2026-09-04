@@ -507,6 +507,85 @@ export interface ApiCandidateCandidate extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCloseAccountRequestCloseAccountRequest
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'close_account_requests';
+  info: {
+    displayName: 'close_account_request';
+    pluralName: 'close-account-requests';
+    singularName: 'close-account-request';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    bo_id: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::close-account-request.close-account-request'
+    > &
+      Schema.Attribute.Private;
+    mobile_no: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    ucc: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiComplaintComplaint extends Struct.CollectionTypeSchema {
+  collectionName: 'complaints';
+  info: {
+    displayName: 'complaint';
+    pluralName: 'complaints';
+    singularName: 'complaint';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    attachment: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios'
+    >;
+    client_id: Schema.Attribute.String & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.Text & Schema.Attribute.Required;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    issue: Schema.Attribute.Enumeration<
+      [
+        'Account Opening',
+        'Trade Related Query',
+        'Technical Issue',
+        'Fund Related',
+        'Demat Related',
+        'Others',
+      ]
+    > &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::complaint.complaint'
+    > &
+      Schema.Attribute.Private;
+    mobile_no: Schema.Attribute.String & Schema.Attribute.Required;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    subject: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiContactFormContactForm extends Struct.CollectionTypeSchema {
   collectionName: 'contact_forms';
   info: {
@@ -1154,6 +1233,8 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::blog.blog': ApiBlogBlog;
       'api::candidate.candidate': ApiCandidateCandidate;
+      'api::close-account-request.close-account-request': ApiCloseAccountRequestCloseAccountRequest;
+      'api::complaint.complaint': ApiComplaintComplaint;
       'api::contact-form.contact-form': ApiContactFormContactForm;
       'api::opening.opening': ApiOpeningOpening;
       'api::software-category.software-category': ApiSoftwareCategorySoftwareCategory;
