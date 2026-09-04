@@ -443,6 +443,42 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiCandidateCandidate extends Struct.CollectionTypeSchema {
+  collectionName: 'candidates';
+  info: {
+    displayName: 'candidate';
+    pluralName: 'candidates';
+    singularName: 'candidate';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    additional_links: Schema.Attribute.String;
+    contact_no: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    email: Schema.Attribute.Email & Schema.Attribute.Required;
+    linkedin_url: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::candidate.candidate'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    opening: Schema.Attribute.Relation<'manyToOne', 'api::opening.opening'> &
+      Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    resume: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'> &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiContactFormContactForm extends Struct.CollectionTypeSchema {
   collectionName: 'contact_forms';
   info: {
@@ -474,6 +510,43 @@ export interface ApiContactFormContactForm extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiOpeningOpening extends Struct.CollectionTypeSchema {
+  collectionName: 'openings';
+  info: {
+    displayName: 'opening';
+    pluralName: 'openings';
+    singularName: 'opening';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    candidates: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::candidate.candidate'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.RichText & Schema.Attribute.Required;
+    job_status: Schema.Attribute.Enumeration<['Open', 'Closed', 'Filled']> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::opening.opening'
+    > &
+      Schema.Attribute.Private;
+    location: Schema.Attribute.Text & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    tags: Schema.Attribute.Text;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSoftwareCategorySoftwareCategory
   extends Struct.CollectionTypeSchema {
   collectionName: 'software_categories';
@@ -495,7 +568,7 @@ export interface ApiSoftwareCategorySoftwareCategory
       'api::software-category.software-category'
     > &
       Schema.Attribute.Private;
-    name: Schema.Attribute.String;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     software: Schema.Attribute.Relation<'oneToMany', 'api::software.software'>;
     updatedAt: Schema.Attribute.DateTime;
@@ -515,7 +588,8 @@ export interface ApiSoftwareSoftware extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    artifact: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    artifact: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'> &
+      Schema.Attribute.Required;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -526,12 +600,13 @@ export interface ApiSoftwareSoftware extends Struct.CollectionTypeSchema {
       'api::software.software'
     > &
       Schema.Attribute.Private;
-    name: Schema.Attribute.String;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
     publishedAt: Schema.Attribute.DateTime;
     software_category: Schema.Attribute.Relation<
       'manyToOne',
       'api::software-category.software-category'
-    >;
+    > &
+      Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -1049,7 +1124,9 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::candidate.candidate': ApiCandidateCandidate;
       'api::contact-form.contact-form': ApiContactFormContactForm;
+      'api::opening.opening': ApiOpeningOpening;
       'api::software-category.software-category': ApiSoftwareCategorySoftwareCategory;
       'api::software.software': ApiSoftwareSoftware;
       'plugin::content-releases.release': PluginContentReleasesRelease;

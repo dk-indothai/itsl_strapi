@@ -1,10 +1,10 @@
 {
   "kind": "collectionType",
-  "collectionName": "softwares",
+  "collectionName": "candidates",
   "info": {
-    "singularName": "software",
-    "pluralName": "softwares",
-    "displayName": "software"
+    "singularName": "candidate",
+    "pluralName": "candidates",
+    "displayName": "candidate"
   },
   "options": {
     "draftAndPublish": true
@@ -15,10 +15,14 @@
       "type": "string",
       "required": true
     },
-    "description": {
-      "type": "text"
+    "email": {
+      "type": "email",
+      "required": true
     },
-    "artifact": {
+    "contact_no": {
+      "type": "string"
+    },
+    "resume": {
       "type": "media",
       "multiple": false,
       "required": true,
@@ -29,12 +33,19 @@
         "audios"
       ]
     },
-    "software_category": {
+    "linkedin_url": {
+      "type": "string",
+      "required": true
+    },
+    "additional_links": {
+      "type": "string"
+    },
+    "opening": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::software-category.software-category",
+      "target": "api::opening.opening",
       "required": true,
-      "inversedBy": "software"
+      "inversedBy": "candidates"
     }
   }
 }
