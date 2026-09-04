@@ -4,7 +4,7 @@
   "info": {
     "singularName": "opening",
     "pluralName": "openings",
-    "displayName": "opening"
+    "displayName": "job_opening"
   },
   "options": {
     "draftAndPublish": true

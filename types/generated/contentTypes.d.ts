@@ -443,10 +443,38 @@ export interface AdminUser extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiBlogBlog extends Struct.CollectionTypeSchema {
+  collectionName: 'blogs';
+  info: {
+    displayName: 'blog';
+    pluralName: 'blogs';
+    singularName: 'blog';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    banner: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
+    content: Schema.Attribute.RichText & Schema.Attribute.Required;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::blog.blog'> &
+      Schema.Attribute.Private;
+    publish_date: Schema.Attribute.Date & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.Text & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCandidateCandidate extends Struct.CollectionTypeSchema {
   collectionName: 'candidates';
   info: {
-    displayName: 'candidate';
+    displayName: 'job_candidate';
     pluralName: 'candidates';
     singularName: 'candidate';
   };
@@ -513,7 +541,7 @@ export interface ApiContactFormContactForm extends Struct.CollectionTypeSchema {
 export interface ApiOpeningOpening extends Struct.CollectionTypeSchema {
   collectionName: 'openings';
   info: {
-    displayName: 'opening';
+    displayName: 'job_opening';
     pluralName: 'openings';
     singularName: 'opening';
   };
@@ -1124,6 +1152,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token': AdminTransferToken;
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
+      'api::blog.blog': ApiBlogBlog;
       'api::candidate.candidate': ApiCandidateCandidate;
       'api::contact-form.contact-form': ApiContactFormContactForm;
       'api::opening.opening': ApiOpeningOpening;
