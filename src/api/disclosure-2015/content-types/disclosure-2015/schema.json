@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "disclosure_2015s",
+  "info": {
+    "singularName": "disclosure-2015",
+    "pluralName": "disclosure-2015s",
+    "displayName": "disclosure_2015"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "link": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

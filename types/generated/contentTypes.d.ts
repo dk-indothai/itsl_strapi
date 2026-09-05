@@ -617,6 +617,36 @@ export interface ApiContactFormContactForm extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiDisclosure2015Disclosure2015
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'disclosure_2015s';
+  info: {
+    displayName: 'disclosure_2015';
+    pluralName: 'disclosure-2015s';
+    singularName: 'disclosure-2015';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    link: Schema.Attribute.String & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::disclosure-2015.disclosure-2015'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiFinancialReportFinancialReport
   extends Struct.CollectionTypeSchema {
   collectionName: 'financial_reports';
@@ -1375,6 +1405,7 @@ declare module '@strapi/strapi' {
       'api::close-account-request.close-account-request': ApiCloseAccountRequestCloseAccountRequest;
       'api::complaint.complaint': ApiComplaintComplaint;
       'api::contact-form.contact-form': ApiContactFormContactForm;
+      'api::disclosure-2015.disclosure-2015': ApiDisclosure2015Disclosure2015;
       'api::financial-report.financial-report': ApiFinancialReportFinancialReport;
       'api::opening.opening': ApiOpeningOpening;
       'api::overview.overview': ApiOverviewOverview;
