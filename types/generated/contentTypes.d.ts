@@ -507,6 +507,37 @@ export interface ApiCandidateCandidate extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiClientRelationClientRelation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'client_relations';
+  info: {
+    displayName: 'client_relation';
+    pluralName: 'client-relations';
+    singularName: 'client-relation';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    file: Schema.Attribute.Media<'files' | 'images'> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::client-relation.client-relation'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCloseAccountRequestCloseAccountRequest
   extends Struct.CollectionTypeSchema {
   collectionName: 'close_account_requests';
@@ -1402,6 +1433,7 @@ declare module '@strapi/strapi' {
       'admin::user': AdminUser;
       'api::blog.blog': ApiBlogBlog;
       'api::candidate.candidate': ApiCandidateCandidate;
+      'api::client-relation.client-relation': ApiClientRelationClientRelation;
       'api::close-account-request.close-account-request': ApiCloseAccountRequestCloseAccountRequest;
       'api::complaint.complaint': ApiComplaintComplaint;
       'api::contact-form.contact-form': ApiContactFormContactForm;
