@@ -654,6 +654,104 @@ export interface ApiOpeningOpening extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiOverviewOverview extends Struct.CollectionTypeSchema {
+  collectionName: 'overviews';
+  info: {
+    displayName: 'overview';
+    pluralName: 'overviews';
+    singularName: 'overview';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    description: Schema.Attribute.RichText & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::overview.overview'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiShareholderRelationCategoryShareholderRelationCategory
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'shareholder_relation_categories';
+  info: {
+    displayName: 'shareholder_relation_category';
+    pluralName: 'shareholder-relation-categories';
+    singularName: 'shareholder-relation-category';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::shareholder-relation-category.shareholder-relation-category'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String & Schema.Attribute.Required;
+    publishedAt: Schema.Attribute.DateTime;
+    shareholder_relations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::shareholder-relation.shareholder-relation'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
+export interface ApiShareholderRelationShareholderRelation
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'shareholder_relations';
+  info: {
+    displayName: 'shareholder_relation';
+    pluralName: 'shareholder-relations';
+    singularName: 'shareholder-relation';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    file: Schema.Attribute.Media<'images' | 'files' | 'videos'> &
+      Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::shareholder-relation.shareholder-relation'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    shareholder_relation_category: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::shareholder-relation-category.shareholder-relation-category'
+    > &
+      Schema.Attribute.Required;
+    title: Schema.Attribute.String & Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiSoftwareCategorySoftwareCategory
   extends Struct.CollectionTypeSchema {
   collectionName: 'software_categories';
@@ -1237,6 +1335,9 @@ declare module '@strapi/strapi' {
       'api::complaint.complaint': ApiComplaintComplaint;
       'api::contact-form.contact-form': ApiContactFormContactForm;
       'api::opening.opening': ApiOpeningOpening;
+      'api::overview.overview': ApiOverviewOverview;
+      'api::shareholder-relation-category.shareholder-relation-category': ApiShareholderRelationCategoryShareholderRelationCategory;
+      'api::shareholder-relation.shareholder-relation': ApiShareholderRelationShareholderRelation;
       'api::software-category.software-category': ApiSoftwareCategorySoftwareCategory;
       'api::software.software': ApiSoftwareSoftware;
       'plugin::content-releases.release': PluginContentReleasesRelease;

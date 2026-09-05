@@ -1,0 +1,25 @@
+{
+  "kind": "collectionType",
+  "collectionName": "shareholder_relation_categories",
+  "info": {
+    "singularName": "shareholder-relation-category",
+    "pluralName": "shareholder-relation-categories",
+    "displayName": "shareholder_relation_category"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "name": {
+      "type": "string",
+      "required": true
+    },
+    "shareholder_relations": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::shareholder-relation.shareholder-relation",
+      "mappedBy": "shareholder_relation_category"
+    }
+  }
+}
