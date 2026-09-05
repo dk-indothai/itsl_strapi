@@ -59,3 +59,71 @@ Feel free to check out the [Strapi GitHub repository](https://github.com/strapi/
 ---
 
 <sub>🤫 Psst! [Strapi is hiring](https://strapi.io/careers).</sub>
+
+## IndoThai public and private media
+
+The Upload plugin uses the local `@indothai/private-media` provider. Normal Media
+Library uploads continue to use `GCS_BUCKET_NAME` and public URLs. Only requests
+made through `POST /api/private-upload` use `GCS_PRIVATE_BUCKET_NAME`.
+
+The private endpoint accepts exactly one multipart `files` value and one purpose:
+
+- `resume`: PDF only, no more than 2,000,000 bytes.
+- `complaint`: JPG, JPEG, PNG, GIF, PDF, DOC, DOCX, XLS, XLSX, TXT or CSV, no
+  more than 5,000,000 bytes.
+
+It returns only `[{ "id": 123 }]`. Candidate and Complaint creation validates
+that this ID belongs to an unused private upload with the matching purpose. The
+Public Create for Private Upload is enforced at startup. The same startup rule
+removes Public Upload, Find, Find Page, Find One and Delete access from the normal
+Upload API. It leaves unrelated permissions unchanged, including the existing
+Candidate and Complaint Create choices. Candidate and Complaint public reads,
+updates and deletes must remain disabled.
+
+Private objects are never made anonymous. Strapi Content Manager generates a fresh
+five-minute signed URL when an administrator with the corresponding content-type
+and media-field Read permission views a record. The file remains stored until it is
+manually deleted; only the temporary URL expires.
+Treat each signed URL as a bearer link: anyone holding it can use it until expiry,
+so do not copy it into logs, support tickets or public messages.
+
+Required private settings are:
+
+```dotenv
+GCS_PRIVATE_BUCKET_NAME=private-bucket-name
+GCS_PRIVATE_BASE_PATH=
+GCS_PRIVATE_BASE_URL=https://storage.googleapis.com/{bucket-name}
+```
+
+The existing service account is reused. It needs object create/read/delete access to
+both applicable buckets and permission to sign private read URLs. Keep the public
+bucket publicly readable and do not grant `allUsers` access to the private bucket.
+
+### Existing media migration
+
+The migration is deliberately staged:
+
+```bash
+npm run migrate:private-media -- dry-run
+npm run migrate:private-media -- apply
+npm run migrate:private-media -- finalize --confirm-delete-public-copies
+```
+
+Run `apply` only after taking a database backup. It copies and verifies private
+objects, then updates Strapi records; it does not delete public sources. Verify
+Candidate/Complaint access with a limited administrator and verify public software
+downloads before `finalize`. Finalize verifies each private destination again and
+then removes only the recorded public source objects.
+
+Do not restart a deployed Strapi instance with the dual provider and then delete or
+replace old Media Library records before `apply` has updated their provider name.
+The old rows still contain usable public URLs, but provider-owned deletion is safe
+only after the staged database update.
+
+The current dry run reports 2 unique resume files, 1 unique complaint attachment
+and 2 generated variants. These are referenced by 4 Candidate and 2 Complaint
+draft/published relations, which is why relation counts are higher than media-file
+counts.
+
+Production still needs restricted CORS, rate limiting, malware scanning, private
+data retention rules and cleanup for unattached uploads.
