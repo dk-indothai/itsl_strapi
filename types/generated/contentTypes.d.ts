@@ -617,6 +617,47 @@ export interface ApiContactFormContactForm extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiFinancialReportFinancialReport
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'financial_reports';
+  info: {
+    displayName: 'financial_report';
+    pluralName: 'financial-reports';
+    singularName: 'financial-report';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    file: Schema.Attribute.Media<'files'> & Schema.Attribute.Required;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::financial-report.financial-report'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    quarter: Schema.Attribute.Integer &
+      Schema.Attribute.Required &
+      Schema.Attribute.SetMinMax<
+        {
+          max: 4;
+          min: 1;
+        },
+        number
+      >;
+    report_type: Schema.Attribute.Enumeration<['Quarter', 'Full Year']> &
+      Schema.Attribute.Required;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    year: Schema.Attribute.Integer & Schema.Attribute.Required;
+  };
+}
+
 export interface ApiOpeningOpening extends Struct.CollectionTypeSchema {
   collectionName: 'openings';
   info: {
@@ -1334,6 +1375,7 @@ declare module '@strapi/strapi' {
       'api::close-account-request.close-account-request': ApiCloseAccountRequestCloseAccountRequest;
       'api::complaint.complaint': ApiComplaintComplaint;
       'api::contact-form.contact-form': ApiContactFormContactForm;
+      'api::financial-report.financial-report': ApiFinancialReportFinancialReport;
       'api::opening.opening': ApiOpeningOpening;
       'api::overview.overview': ApiOverviewOverview;
       'api::shareholder-relation-category.shareholder-relation-category': ApiShareholderRelationCategoryShareholderRelationCategory;
