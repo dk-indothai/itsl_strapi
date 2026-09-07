@@ -142,8 +142,9 @@ in `migration_data/files/`. Files may use any type supported by the configured
 Strapi Media Library. Remote files are downloaded and checked to be nonempty
 when the seed runs. A report with an empty `file_path` is logged by title and
 skipped; the rest of the migration continues. File downloads and report uploads
-run through six asynchronous workers so large migrations do not run one file at
-a time or hold every downloaded file in memory. When a category contains the
+run through four asynchronous workers so large migrations do not run one file at
+a time or hold every downloaded file in memory. Remote downloads allow up to 60
+seconds and Strapi requests up to two minutes. When a category contains the
 same report title more than once, the first entry is kept and later duplicates
 are logged and skipped.
 

@@ -116,5 +116,5 @@ test("file work runs asynchronously with bounded concurrency", async () => {
   });
 
   assert.ok(highest > 1);
-  assert.ok(highest <= 6);
+  assert.ok(highest <= 4);
 });

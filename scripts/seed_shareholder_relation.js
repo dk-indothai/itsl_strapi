@@ -10,8 +10,9 @@ const DATA_FILE = path.join(
 );
 const FILES_DIR = path.join(ROOT, "migration_data/files");
 const MEDIA_FOLDER_NAME = "Shareholding Relation";
-const FILE_CONCURRENCY = 6;
+const FILE_CONCURRENCY = 4;
 const FILE_DOWNLOAD_TIMEOUT_MS = 60_000;
+const STRAPI_REQUEST_TIMEOUT_MS = 120_000;
 
 const CATEGORY =
   "api::shareholder-relation-category.shareholder-relation-category";
@@ -153,12 +154,17 @@ function createApi(baseUrl, fetchImpl = fetch) {
     if (token) headers.set("Authorization", `Bearer ${token}`);
     if (options.json) headers.set("Content-Type", "application/json");
 
-    const response = await fetchImpl(new URL(endpoint, base), {
-      method: options.method || "GET",
-      headers,
-      body: options.json ? JSON.stringify(options.json) : options.body,
-      signal: AbortSignal.timeout(20_000),
-    });
+    let response;
+    try {
+      response = await fetchImpl(new URL(endpoint, base), {
+        method: options.method || "GET",
+        headers,
+        body: options.json ? JSON.stringify(options.json) : options.body,
+        signal: AbortSignal.timeout(STRAPI_REQUEST_TIMEOUT_MS),
+      });
+    } catch (error) {
+      throw new Error(`${endpoint} request failed: ${error.message}`);
+    }
     const text = await response.text();
     const body = text ? JSON.parse(text) : null;
     if (!response.ok) {
@@ -338,26 +344,34 @@ async function seed({ categories, api, log = console.log }) {
       ) {
         reused += 1;
       } else {
-        file = await uploadFile(api, sourceFile, mediaFolder.id);
+        try {
+          file = await uploadFile(api, sourceFile, mediaFolder.id);
+        } catch (error) {
+          throw new Error(`${report.title}: ${error.message}`);
+        }
         uploaded += 1;
         if (existingReport?.file?.id) {
           log(`Retained replaced media ${existingReport.file.id} for manual review.`);
         }
       }
 
-      await saveAndPublish(api, RELATION, existingReport?.documentId, {
-        title: report.title,
-        file: file.id,
-        shareholder_relation_category: {
-          connect: [
-            {
-              id: category.documentId,
-              documentId: category.documentId,
-            },
-          ],
-          disconnect: [],
-        },
-      });
+      try {
+        await saveAndPublish(api, RELATION, existingReport?.documentId, {
+          title: report.title,
+          file: file.id,
+          shareholder_relation_category: {
+            connect: [
+              {
+                id: category.documentId,
+                documentId: category.documentId,
+              },
+            ],
+            disconnect: [],
+          },
+        });
+      } catch (error) {
+        throw new Error(`${report.title}: ${error.message}`);
+      }
       log(`${existingReport ? "Updated" : "Created"} report: ${report.title}`);
     });
   }
