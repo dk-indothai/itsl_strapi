@@ -140,13 +140,22 @@ Strapi first:
 Each report's `file_path` may be either an HTTP(S) file URL or a filename stored
 in `migration_data/files/`. Files may use any type supported by the configured
 Strapi Media Library. Remote files are downloaded and checked to be nonempty
-when the seed runs. A report with an empty `file_path` is logged by title and
-skipped; the rest of the migration continues. File downloads and report uploads
+when the seed runs. Each report must also contain `created_at` in
+`YYYY-MM-DD HH:mm:ss` format. The seed interprets it in Asia/Kolkata time and
+stores it in the separate `created_at` field; it does not overwrite Strapi's
+system-managed `createdAt`. A report with an empty `file_path` is logged by title
+and skipped; the rest of the migration continues. File downloads and report uploads
 run through four asynchronous workers so large migrations do not run one file at
 a time or hold every downloaded file in memory. Remote downloads allow up to 60
-seconds and Strapi requests up to two minutes. When a category contains the
-same report title more than once, the first entry is kept and later duplicates
-are logged and skipped.
+seconds and Strapi requests up to two minutes. Only entries with the same title
+and the same `file_path` in one category are duplicates and are skipped. The
+same title with a different file is imported as a separate report. The source
+`file_path` is stored as the Media Library caption so reruns can match each
+same-title report to its correct attachment.
+
+After adding the `created_at` schema field, restart Strapi before rerunning the
+seed. Rerunning backfills the field on matching reports and reuses unchanged
+attachments according to the rules above.
 
 Missing local files and remote files that cannot be downloaded are logged by
 report title and skipped. Strapi upload and record-creation errors remain fatal

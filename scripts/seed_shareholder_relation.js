@@ -1,5 +1,58 @@
 "use strict";
 
+/**
+ * Seed Shareholder Relation categories, reports and files into Strapi.
+ *
+ * Prerequisites:
+ * - Start Strapi first so its database tables exist.
+ * - Pass STRAPI_ADMIN_EMAIL and STRAPI_ADMIN_PASSWORD at runtime.
+ * - STRAPI_URL is optional and defaults to http://localhost:1337.
+ * - Never store administrator credentials in this file or the migration JSON.
+ *
+ * Migration data:
+ * - Reads migration_data/shareholder_relation_category.json.
+ * - file_path accepts an HTTP(S) URL or a filename from migration_data/files/.
+ * - File types must be permitted by Strapi's Media Library configuration.
+ * - Empty file_path entries are logged by title and skipped.
+ * - Unavailable, empty or timed-out source files are logged and skipped.
+ * - created_at is required in YYYY-MM-DD HH:mm:ss format and is interpreted
+ *   as an Asia/Kolkata timestamp before being stored as an ISO datetime.
+ * - Only an exact duplicate title + file_path pair is logged and skipped.
+ * - The same title with a different file_path is seeded as a separate report.
+ *
+ * File processing:
+ * - Uses four asynchronous workers so downloads/uploads run in parallel without
+ *   loading every source file into memory at once.
+ * - Remote downloads time out after 60 seconds.
+ * - Strapi requests time out after 120 seconds.
+ * - Media is stored in the root "Shareholding Relation" Media Library folder,
+ *   which is created when missing.
+ *
+ * Rerunning:
+ * - Categories match by exact name.
+ * - Reports match by title, category and source file. The source file_path is
+ *   stored in the Media Library caption so same-title reports remain distinct.
+ * - Sources are downloaded again to determine their filename and size.
+ * - Attached media is reused only when its filename, size and folder match.
+ * - Missing, changed or misplaced attachments are uploaded again.
+ * - Replaced media is retained for manual orphan review and is not deleted.
+ * - Records absent from the migration JSON are not deleted.
+ * - Public Find and Find One permissions are merged into the existing Public
+ *   role without removing unrelated permissions.
+ *
+ * Failure behavior:
+ * - Completed work remains intact after a later failure, so rerunning continues
+ *   from records already stored in Strapi.
+ * - Upload and record-creation failures are fatal because they indicate a
+ *   Strapi configuration, permission or storage problem.
+ * - If an upload finishes but its response times out, an unattached media record
+ *   may remain and a rerun may upload that source again.
+ *
+ * Dry run:
+ * - Use --dry-run to validate migration data and source availability without
+ *   logging in or changing Strapi.
+ */
+
 const fs = require("node:fs/promises");
 const path = require("node:path");
 
@@ -29,6 +82,29 @@ function required(value, name) {
     throw new Error(`${name} is required.`);
   }
   return value.trim();
+}
+
+function normalizeCreatedAt(value, name) {
+  const input = required(value, name);
+  const match = input.match(
+    /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
+  );
+  if (!match) throw new Error(`${name} must use YYYY-MM-DD HH:mm:ss.`);
+
+  const [, year, month, day, hour, minute, second] = match.map(Number);
+  const check = new Date(Date.UTC(year, month - 1, day, hour, minute, second));
+  if (
+    check.getUTCFullYear() !== year ||
+    check.getUTCMonth() !== month - 1 ||
+    check.getUTCDate() !== day ||
+    check.getUTCHours() !== hour ||
+    check.getUTCMinutes() !== minute ||
+    check.getUTCSeconds() !== second
+  ) {
+    throw new Error(`${name} is not a valid date and time.`);
+  }
+
+  return new Date(`${input.replace(" ", "T")}+05:30`).toISOString();
 }
 
 async function loadFile(source, filesDir = FILES_DIR, fetchImpl = fetch) {
@@ -109,21 +185,28 @@ async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
       throw new Error(`${category.name} must contain shareholder_relation.`);
     }
 
-    const titles = new Set();
+    const reports = new Set();
     const reportsWithFiles = [];
     for (const report of category.shareholder_relation) {
       report.title = required(report.title, `${category.name} report title`);
+      report.created_at = normalizeCreatedAt(
+        report.created_at,
+        `${report.title} created_at`,
+      );
       if (report.file_path == null || report.file_path.trim?.() === "") {
         log(`Skipped report with empty file_path: ${report.title}`);
         continue;
       }
-      if (titles.has(report.title)) {
-        log(`Skipped duplicate report in ${category.name}: ${report.title}`);
+      report.file_path = required(report.file_path, `${report.title} file_path`);
+      const reportKey = `${report.title}\0${report.file_path}`;
+      if (reports.has(reportKey)) {
+        log(
+          `Skipped exact duplicate report in ${category.name}: ${report.title} (${report.file_path})`,
+        );
         continue;
       }
-      titles.add(report.title);
+      reports.add(reportKey);
 
-      report.file_path = required(report.file_path, `${report.title} file_path`);
       reportsWithFiles.push(report);
     }
     category.shareholder_relation = reportsWithFiles;
@@ -245,7 +328,7 @@ async function getOrCreateMediaFolder(api) {
   return created.data;
 }
 
-async function uploadFile(api, file, folderId) {
+async function uploadFile(api, file, folderId, source) {
   const form = new FormData();
   form.append(
     "files",
@@ -257,7 +340,7 @@ async function uploadFile(api, file, folderId) {
     JSON.stringify({
       name: file.fileName,
       alternativeText: null,
-      caption: null,
+      caption: source,
       folder: folderId,
     }),
   );
@@ -268,6 +351,46 @@ async function uploadFile(api, file, folderId) {
   });
   if (!Number.isInteger(uploadedFile?.id)) throw new Error("File upload failed.");
   return uploadedFile;
+}
+
+function buildReportData(report, fileId, categoryDocumentId) {
+  return {
+    title: report.title,
+    created_at: report.created_at,
+    file: fileId,
+    shareholder_relation_category: {
+      connect: [
+        {
+          id: categoryDocumentId,
+          documentId: categoryDocumentId,
+        },
+      ],
+      disconnect: [],
+    },
+  };
+}
+
+function findSavedReport(
+  savedReports,
+  report,
+  categoryDocumentId,
+  sourceFileName,
+  claimedReports,
+  sameTitleCount,
+) {
+  const matches = savedReports.filter(
+    (item) =>
+      item.title === report.title &&
+      item.shareholder_relation_category?.documentId === categoryDocumentId &&
+      !claimedReports.has(item.documentId),
+  );
+  return (
+    matches.find((item) => item.file?.caption === report.file_path) ||
+    matches.find(
+      (item) => !item.file?.caption && item.file?.name === sourceFileName,
+    ) ||
+    (sameTitleCount === 1 && matches.length === 1 ? matches[0] : undefined)
+  );
 }
 
 function setPublicAction(permissions, action) {
@@ -319,6 +442,7 @@ async function seed({ categories, api, log = console.log }) {
     );
     log(`${existingCategory ? "Updated" : "Created"} category: ${input.name}`);
 
+    const claimedReports = new Set();
     await runInParallel(input.shareholder_relation, async (report) => {
       let sourceFile;
       try {
@@ -329,14 +453,24 @@ async function seed({ categories, api, log = console.log }) {
         return;
       }
 
-      const existingReport = savedReports.find(
-        (item) =>
-          item.title === report.title &&
-          item.shareholder_relation_category?.documentId === category.documentId,
+      const sameTitleCount = input.shareholder_relation.filter(
+        (item) => item.title === report.title,
+      ).length;
+      const existingReport = findSavedReport(
+        savedReports,
+        report,
+        category.documentId,
+        sourceFile.fileName,
+        claimedReports,
+        sameTitleCount,
       );
+      if (existingReport) claimedReports.add(existingReport.documentId);
 
       let file = existingReport?.file;
+      const sourceMatches =
+        sameTitleCount === 1 || file?.caption === report.file_path;
       if (
+        sourceMatches &&
         file?.name === sourceFile.fileName &&
         Number(file.size) === sourceFile.size
       ) {
@@ -348,6 +482,7 @@ async function seed({ categories, api, log = console.log }) {
       const fileFolderId =
         typeof file?.folder === "object" ? file.folder?.id : file?.folder;
       if (
+        sourceMatches &&
         file?.name === sourceFile.fileName &&
         Number(file.size) === sourceFile.size &&
         Number(fileFolderId) === mediaFolder.id
@@ -355,7 +490,7 @@ async function seed({ categories, api, log = console.log }) {
         reused += 1;
       } else {
         try {
-          file = await uploadFile(api, sourceFile, mediaFolder.id);
+          file = await uploadFile(api, sourceFile, mediaFolder.id, report.file_path);
         } catch (error) {
           throw new Error(`${report.title}: ${error.message}`);
         }
@@ -366,19 +501,12 @@ async function seed({ categories, api, log = console.log }) {
       }
 
       try {
-        await saveAndPublish(api, RELATION, existingReport?.documentId, {
-          title: report.title,
-          file: file.id,
-          shareholder_relation_category: {
-            connect: [
-              {
-                id: category.documentId,
-                documentId: category.documentId,
-              },
-            ],
-            disconnect: [],
-          },
-        });
+        await saveAndPublish(
+          api,
+          RELATION,
+          existingReport?.documentId,
+          buildReportData(report, file.id, category.documentId),
+        );
       } catch (error) {
         throw new Error(`${report.title}: ${error.message}`);
       }
@@ -428,9 +556,12 @@ if (require.main === module) {
 module.exports = {
   MEDIA_FOLDER_NAME,
   PUBLIC_ACTIONS,
+  buildReportData,
   createApi,
+  findSavedReport,
   getOrCreateMediaFolder,
   loadFile,
+  normalizeCreatedAt,
   readSeedData,
   runInParallel,
   seed,
