@@ -174,3 +174,6 @@ enables Public Find/Find One for both shareholder collection types. It preserves
 all unrelated Public-role permissions and does not delete records absent from the
 fixture. When a changed attachment is replaced, the earlier media record is kept
 for manual orphan review instead of being deleted automatically.
+
+Shareholder report titles use Strapi's long-text field so regulatory titles are
+stored completely instead of being truncated at 255 characters.

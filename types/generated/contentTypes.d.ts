@@ -847,7 +847,7 @@ export interface ApiShareholderRelationShareholderRelation
       'api::shareholder-relation-category.shareholder-relation-category'
     > &
       Schema.Attribute.Required;
-    title: Schema.Attribute.String & Schema.Attribute.Required;
+    title: Schema.Attribute.Text & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
