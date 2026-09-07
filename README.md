@@ -127,3 +127,41 @@ counts.
 
 Production still needs restricted CORS, rate limiting, malware scanning, private
 data retention rules and cleanup for unattached uploads.
+
+## Shareholder Relation seed
+
+`scripts/seed_shareholder_relation.js` imports the categories, reports and PDFs
+defined by `migration_data/shareholder_relation_category.json` and
+`migration_data/files/`. Strapi must already be running with its database tables
+created. Uploaded PDFs are organized in the root Media Library folder
+**Shareholding Relation**. Validate the local migration data without contacting
+Strapi first:
+
+Each report's `file_path` may be either a PDF URL or a filename stored in
+`migration_data/files/`. Remote PDFs are downloaded and validated when the seed
+runs.
+
+```bash
+node scripts/seed_shareholder_relation.js --dry-run
+```
+
+Pass Super Admin credentials only through the process environment when applying
+the seed:
+
+```bash
+STRAPI_ADMIN_EMAIL='admin@example.com' \
+STRAPI_ADMIN_PASSWORD='runtime-secret' \
+node scripts/seed_shareholder_relation.js
+```
+
+`STRAPI_URL` defaults to `http://localhost:1337` and can be set to another
+HTTP(S) Strapi address. Never add the credentials to `.env` files committed to
+Git or to the migration JSON.
+
+The script creates missing records and updates exact name/title matches. It
+publishes seeded categories and reports, uploads public PDFs through the Media
+Library, reuses an attached file when its filename and size already match, and
+enables Public Find/Find One for both shareholder collection types. It preserves
+all unrelated Public-role permissions and does not delete records absent from the
+fixture. When a changed attachment is replaced, the earlier media record is kept
+for manual orphan review instead of being deleted automatically.
