@@ -154,8 +154,9 @@ because they indicate a backend or permission problem.
 
 The upload allowlist includes `text/html` for the legacy regulatory reports that
 are stored as HTML documents and `application/zip` for legacy archive reports.
-Other global upload restrictions and the private resume/complaint validation
-remain unchanged.
+It also includes `application/x-cfb`, the detected container type for legacy
+`.xls` and `.doc` files. Other global upload restrictions and the private
+resume/complaint validation remain unchanged.
 
 ```bash
 node scripts/seed_shareholder_relation.js --dry-run

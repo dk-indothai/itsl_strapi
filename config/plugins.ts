@@ -8,6 +8,7 @@ const allowedMediaTypes = [
   "audio/*",
   "application/pdf",
   "application/zip",
+  "application/x-cfb",
   "application/msword",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.*",
