@@ -16,7 +16,7 @@
  * - Empty file_path entries are logged by title and skipped.
  * - Unavailable, empty or timed-out source files are logged and skipped.
  * - created_at is required in YYYY-MM-DD HH:mm:ss format and is interpreted
- *   as an Asia/Kolkata timestamp before being stored as an ISO datetime.
+ *   as an Asia/Kolkata timestamp before being stored as original_created_at.
  * - Only an exact duplicate title + file_path pair is logged and skipped.
  * - The same title with a different file_path is seeded as a separate report.
  *
@@ -128,7 +128,9 @@ async function loadFile(source, filesDir = FILES_DIR, fetchImpl = fetch) {
     bytes = Buffer.from(await response.arrayBuffer());
   } else {
     if (path.basename(source) !== source) {
-      throw new Error(`${source} must be a filename from migration_data/files.`);
+      throw new Error(
+        `${source} must be a filename from migration_data/files.`,
+      );
     }
     fileName = source;
     bytes = await fs.readFile(path.join(filesDir, source));
@@ -175,7 +177,10 @@ async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
 
   const categoryNames = new Set();
   for (const [categoryIndex, category] of categories.entries()) {
-    category.name = required(category.name, `Category ${categoryIndex + 1} name`);
+    category.name = required(
+      category.name,
+      `Category ${categoryIndex + 1} name`,
+    );
     if (categoryNames.has(category.name)) {
       throw new Error(`Duplicate category: ${category.name}`);
     }
@@ -197,7 +202,10 @@ async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
         log(`Skipped report with empty file_path: ${report.title}`);
         continue;
       }
-      report.file_path = required(report.file_path, `${report.title} file_path`);
+      report.file_path = required(
+        report.file_path,
+        `${report.title} file_path`,
+      );
       const reportKey = `${report.title}\0${report.file_path}`;
       if (reports.has(reportKey)) {
         log(
@@ -219,7 +227,9 @@ async function validateReportFiles(
   fetchImpl = fetch,
   log = console.warn,
 ) {
-  const reports = categories.flatMap((category) => category.shareholder_relation);
+  const reports = categories.flatMap(
+    (category) => category.shareholder_relation,
+  );
   let unavailable = 0;
   await runInParallel(reports, async (report) => {
     try {
@@ -301,7 +311,8 @@ async function saveAndPublish(api, model, documentId, data) {
     `/content-manager/collection-types/${encodeURIComponent(model)}${id}/actions/publish`,
     { method: "POST", json: data },
   );
-  if (!result?.data?.documentId) throw new Error(`Strapi did not publish ${model}.`);
+  if (!result?.data?.documentId)
+    throw new Error(`Strapi did not publish ${model}.`);
   return result.data;
 }
 
@@ -349,14 +360,15 @@ async function uploadFile(api, file, folderId, source) {
     method: "POST",
     body: form,
   });
-  if (!Number.isInteger(uploadedFile?.id)) throw new Error("File upload failed.");
+  if (!Number.isInteger(uploadedFile?.id))
+    throw new Error("File upload failed.");
   return uploadedFile;
 }
 
 function buildReportData(report, fileId, categoryDocumentId) {
   return {
     title: report.title,
-    created_at: report.created_at,
+    original_created_at: report.created_at,
     file: fileId,
     shareholder_relation_category: {
       connect: [
@@ -409,8 +421,11 @@ async function enablePublicReads(api) {
   const publicRole = roleList.roles.find((role) => role.type === "public");
   if (!publicRole) throw new Error("Public role not found.");
 
-  const { role } = await api.request(`/users-permissions/roles/${publicRole.id}`);
-  for (const action of PUBLIC_ACTIONS) setPublicAction(role.permissions, action);
+  const { role } = await api.request(
+    `/users-permissions/roles/${publicRole.id}`,
+  );
+  for (const action of PUBLIC_ACTIONS)
+    setPublicAction(role.permissions, action);
   await api.request(`/users-permissions/roles/${publicRole.id}`, {
     method: "PUT",
     json: {
@@ -490,13 +505,20 @@ async function seed({ categories, api, log = console.log }) {
         reused += 1;
       } else {
         try {
-          file = await uploadFile(api, sourceFile, mediaFolder.id, report.file_path);
+          file = await uploadFile(
+            api,
+            sourceFile,
+            mediaFolder.id,
+            report.file_path,
+          );
         } catch (error) {
           throw new Error(`${report.title}: ${error.message}`);
         }
         uploaded += 1;
         if (existingReport?.file?.id) {
-          log(`Retained replaced media ${existingReport.file.id} for manual review.`);
+          log(
+            `Retained replaced media ${existingReport.file.id} for manual review.`,
+          );
         }
       }
 
@@ -525,7 +547,9 @@ async function main() {
     0,
   );
   const categoryLabel = categories.length === 1 ? "category" : "categories";
-  console.log(`Found ${categories.length} ${categoryLabel} and ${reportCount} reports.`);
+  console.log(
+    `Found ${categories.length} ${categoryLabel} and ${reportCount} reports.`,
+  );
 
   if (process.argv.includes("--dry-run")) {
     const unavailable = await validateReportFiles(categories);
@@ -536,7 +560,10 @@ async function main() {
   }
 
   const email = required(process.env.STRAPI_ADMIN_EMAIL, "STRAPI_ADMIN_EMAIL");
-  const password = required(process.env.STRAPI_ADMIN_PASSWORD, "STRAPI_ADMIN_PASSWORD");
+  const password = required(
+    process.env.STRAPI_ADMIN_PASSWORD,
+    "STRAPI_ADMIN_PASSWORD",
+  );
   const api = createApi(process.env.STRAPI_URL || "http://localhost:1337");
   await api.login(email, password);
 

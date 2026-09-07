@@ -142,8 +142,9 @@ in `migration_data/files/`. Files may use any type supported by the configured
 Strapi Media Library. Remote files are downloaded and checked to be nonempty
 when the seed runs. Each report must also contain `created_at` in
 `YYYY-MM-DD HH:mm:ss` format. The seed interprets it in Asia/Kolkata time and
-stores it in the separate `created_at` field; it does not overwrite Strapi's
-system-managed `createdAt`. A report with an empty `file_path` is logged by title
+stores it in `original_created_at`. The migration JSON keeps the source key
+`created_at`; the different Strapi field name avoids a collision with the database
+column used by Strapi's system-managed `createdAt`. A report with an empty `file_path` is logged by title
 and skipped; the rest of the migration continues. File downloads and report uploads
 run through four asynchronous workers so large migrations do not run one file at
 a time or hold every downloaded file in memory. Remote downloads allow up to 60
@@ -153,7 +154,7 @@ same title with a different file is imported as a separate report. The source
 `file_path` is stored as the Media Library caption so reruns can match each
 same-title report to its correct attachment.
 
-After adding the `created_at` schema field, restart Strapi before rerunning the
+After adding the `original_created_at` schema field, restart Strapi before rerunning the
 seed. Rerunning backfills the field on matching reports and reuses unchanged
 attachments according to the rules above.
 

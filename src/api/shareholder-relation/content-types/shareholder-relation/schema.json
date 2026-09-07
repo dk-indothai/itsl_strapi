@@ -15,18 +15,14 @@
       "type": "text",
       "required": true
     },
-    "created_at": {
+    "original_created_at": {
       "type": "datetime"
     },
     "file": {
       "type": "media",
       "multiple": false,
       "required": true,
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos"
-      ]
+      "allowedTypes": ["images", "files", "videos"]
     },
     "shareholder_relation_category": {
       "type": "relation",

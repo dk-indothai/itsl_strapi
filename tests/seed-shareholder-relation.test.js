@@ -39,7 +39,9 @@ test("the checked-in shareholder migration data is valid", async () => {
   }
   assert.ok(
     categories.some((category) => {
-      const titles = category.shareholder_relation.map((report) => report.title);
+      const titles = category.shareholder_relation.map(
+        (report) => report.title,
+      );
       return new Set(titles).size < titles.length;
     }),
     "same-title reports with different files should be retained",
@@ -74,7 +76,7 @@ test("report payload carries the original creation date", () => {
     ),
     {
       title: "Annual Report",
-      created_at: "2026-07-20T09:23:04.000Z",
+      original_created_at: "2026-07-20T09:23:04.000Z",
       file: 7,
       shareholder_relation_category: {
         connect: [
@@ -87,6 +89,15 @@ test("report payload carries the original creation date", () => {
       },
     },
   );
+});
+
+test("shareholder schema keeps the original date separate from Strapi createdAt", () => {
+  const schema = require("../src/api/shareholder-relation/content-types/shareholder-relation/schema.json");
+
+  assert.deepEqual(schema.attributes.original_created_at, {
+    type: "datetime",
+  });
+  assert.equal(schema.attributes.created_at, undefined);
 });
 
 test("same-title reports match the saved record for their own source file", () => {

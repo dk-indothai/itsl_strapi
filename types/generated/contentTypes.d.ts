@@ -830,7 +830,6 @@ export interface ApiShareholderRelationShareholderRelation
     draftAndPublish: true;
   };
   attributes: {
-    created_at: Schema.Attribute.DateTime;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -842,6 +841,7 @@ export interface ApiShareholderRelationShareholderRelation
       'api::shareholder-relation.shareholder-relation'
     > &
       Schema.Attribute.Private;
+    original_created_at: Schema.Attribute.DateTime;
     publishedAt: Schema.Attribute.DateTime;
     shareholder_relation_category: Schema.Attribute.Relation<
       'manyToOne',
