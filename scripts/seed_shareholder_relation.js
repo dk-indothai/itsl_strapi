@@ -131,15 +131,22 @@ async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
   return categories;
 }
 
-async function validateReportFiles(categories, fetchImpl = fetch) {
+async function validateReportFiles(
+  categories,
+  fetchImpl = fetch,
+  log = console.warn,
+) {
   const reports = categories.flatMap((category) => category.shareholder_relation);
+  let unavailable = 0;
   await runInParallel(reports, async (report) => {
     try {
       await loadFile(report.file_path, FILES_DIR, fetchImpl);
     } catch (error) {
-      throw new Error(`${report.title}: ${error.message}`);
+      unavailable += 1;
+      log(`Unavailable file for ${report.title}: ${error.message}`);
     }
   });
+  return unavailable;
 }
 
 function createApi(baseUrl, fetchImpl = fetch) {
@@ -298,6 +305,7 @@ async function seed({ categories, api, log = console.log }) {
   log(`Using Media Library folder: ${MEDIA_FOLDER_NAME}`);
   let uploaded = 0;
   let reused = 0;
+  let unavailable = 0;
 
   for (const input of categories) {
     const existingCategory = savedCategories.find(
@@ -316,7 +324,9 @@ async function seed({ categories, api, log = console.log }) {
       try {
         sourceFile = await loadFile(report.file_path);
       } catch (error) {
-        throw new Error(`${report.title}: ${error.message}`);
+        unavailable += 1;
+        log(`Skipped unavailable file for ${report.title}: ${error.message}`);
+        return;
       }
 
       const existingReport = savedReports.find(
@@ -377,7 +387,7 @@ async function seed({ categories, api, log = console.log }) {
   }
 
   await enablePublicReads(api);
-  return { uploaded, reused };
+  return { unavailable, uploaded, reused };
 }
 
 async function main() {
@@ -390,8 +400,10 @@ async function main() {
   console.log(`Found ${categories.length} ${categoryLabel} and ${reportCount} reports.`);
 
   if (process.argv.includes("--dry-run")) {
-    await validateReportFiles(categories);
-    console.log("Dry run complete. Strapi was not changed.");
+    const unavailable = await validateReportFiles(categories);
+    console.log(
+      `Dry run complete. ${unavailable} unavailable files found; Strapi was not changed.`,
+    );
     return;
   }
 
@@ -402,7 +414,7 @@ async function main() {
 
   const result = await seed({ categories, api });
   console.log(
-    `Seed complete. ${result.uploaded} files uploaded and ${result.reused} reused.`,
+    `Seed complete. ${result.uploaded} files uploaded, ${result.reused} reused, and ${result.unavailable} unavailable files skipped.`,
   );
 }
 

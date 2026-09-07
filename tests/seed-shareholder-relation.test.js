@@ -12,6 +12,7 @@ const {
   runInParallel,
   setPublicAction,
   uploadFile,
+  validateReportFiles,
 } = require("../scripts/seed_shareholder_relation");
 
 test("the checked-in shareholder migration data is valid", async () => {
@@ -117,4 +118,26 @@ test("file work runs asynchronously with bounded concurrency", async () => {
 
   assert.ok(highest > 1);
   assert.ok(highest <= 4);
+});
+
+test("unavailable source files are logged and skipped", async () => {
+  const logs = [];
+  const unavailable = await validateReportFiles(
+    [
+      {
+        shareholder_relation: [
+          {
+            title: "Missing report",
+            file_path: "https://example.com/missing.zip",
+          },
+        ],
+      },
+    ],
+    async () => new Response("", { status: 404 }),
+    (message) => logs.push(message),
+  );
+
+  assert.equal(unavailable, 1);
+  assert.match(logs[0], /Missing report/);
+  assert.match(logs[0], /404/);
 });

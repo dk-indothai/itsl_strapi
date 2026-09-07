@@ -148,6 +148,10 @@ seconds and Strapi requests up to two minutes. When a category contains the
 same report title more than once, the first entry is kept and later duplicates
 are logged and skipped.
 
+Missing local files and remote files that cannot be downloaded are logged by
+report title and skipped. Strapi upload and record-creation errors remain fatal
+because they indicate a backend or permission problem.
+
 The upload allowlist includes `text/html` for the legacy regulatory reports that
 are stored as HTML documents. Other global upload restrictions and the private
 resume/complaint validation remain unchanged.
