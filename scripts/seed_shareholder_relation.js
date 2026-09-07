@@ -10,6 +10,8 @@ const DATA_FILE = path.join(
 );
 const FILES_DIR = path.join(ROOT, "migration_data/files");
 const MEDIA_FOLDER_NAME = "Shareholding Relation";
+const FILE_CONCURRENCY = 6;
+const FILE_DOWNLOAD_TIMEOUT_MS = 60_000;
 
 const CATEGORY =
   "api::shareholder-relation-category.shareholder-relation-category";
@@ -28,16 +30,21 @@ function required(value, name) {
   return value.trim();
 }
 
-async function loadPdf(source, filesDir = FILES_DIR, fetchImpl = fetch) {
+async function loadFile(source, filesDir = FILES_DIR, fetchImpl = fetch) {
   let fileName;
   let bytes;
 
   if (/^https?:\/\//i.test(source)) {
     const url = new URL(source);
     fileName = decodeURIComponent(path.posix.basename(url.pathname));
-    const response = await fetchImpl(url, {
-      signal: AbortSignal.timeout(20_000),
-    });
+    let response;
+    try {
+      response = await fetchImpl(url, {
+        signal: AbortSignal.timeout(FILE_DOWNLOAD_TIMEOUT_MS),
+      });
+    } catch (error) {
+      throw new Error(`Could not download ${source}: ${error.message}`);
+    }
     if (!response.ok) {
       throw new Error(`Could not download ${source} (${response.status}).`);
     }
@@ -50,16 +57,10 @@ async function loadPdf(source, filesDir = FILES_DIR, fetchImpl = fetch) {
     bytes = await fs.readFile(path.join(filesDir, source));
   }
 
-  if (
-    !fileName ||
-    path.basename(fileName) !== fileName ||
-    path.extname(fileName).toLowerCase() !== ".pdf"
-  ) {
-    throw new Error(`${source} must point to a PDF file.`);
+  if (!fileName || path.basename(fileName) !== fileName) {
+    throw new Error(`${source} must point to a named file.`);
   }
-  if (!bytes.length || bytes.subarray(0, 5).toString() !== "%PDF-") {
-    throw new Error(`${source} is not a valid PDF.`);
-  }
+  if (!bytes.length) throw new Error(`${source} is empty.`);
 
   return {
     bytes,
@@ -68,11 +69,27 @@ async function loadPdf(source, filesDir = FILES_DIR, fetchImpl = fetch) {
   };
 }
 
-async function readSeedData(
-  dataFile = DATA_FILE,
-  filesDir = FILES_DIR,
-  fetchImpl = fetch,
-) {
+async function runInParallel(items, worker) {
+  let nextIndex = 0;
+  let failure;
+  const workers = Array.from(
+    { length: Math.min(FILE_CONCURRENCY, items.length) },
+    async () => {
+      while (!failure && nextIndex < items.length) {
+        const item = items[nextIndex++];
+        try {
+          await worker(item);
+        } catch (error) {
+          failure = error;
+        }
+      }
+    },
+  );
+  await Promise.all(workers);
+  if (failure) throw failure;
+}
+
+async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
   const json = JSON.parse(await fs.readFile(dataFile, "utf8"));
   const categories = json.shareholder_relation_category;
   if (!Array.isArray(categories)) {
@@ -92,21 +109,36 @@ async function readSeedData(
     }
 
     const titles = new Set();
+    const reportsWithFiles = [];
     for (const report of category.shareholder_relation) {
       report.title = required(report.title, `${category.name} report title`);
-      report.file_path = required(report.file_path, `${report.title} file_path`);
+      if (report.file_path == null || report.file_path.trim?.() === "") {
+        log(`Skipped report with empty file_path: ${report.title}`);
+        continue;
+      }
       if (titles.has(report.title)) {
-        throw new Error(`Duplicate report in ${category.name}: ${report.title}`);
+        log(`Skipped duplicate report in ${category.name}: ${report.title}`);
+        continue;
       }
       titles.add(report.title);
 
-      const pdf = await loadPdf(report.file_path, filesDir, fetchImpl);
-      report.file_bytes = pdf.bytes;
-      report.file_name = pdf.fileName;
-      report.size = pdf.size;
+      report.file_path = required(report.file_path, `${report.title} file_path`);
+      reportsWithFiles.push(report);
     }
+    category.shareholder_relation = reportsWithFiles;
   }
   return categories;
+}
+
+async function validateReportFiles(categories, fetchImpl = fetch) {
+  const reports = categories.flatMap((category) => category.shareholder_relation);
+  await runInParallel(reports, async (report) => {
+    try {
+      await loadFile(report.file_path, FILES_DIR, fetchImpl);
+    } catch (error) {
+      throw new Error(`${report.title}: ${error.message}`);
+    }
+  });
 }
 
 function createApi(baseUrl, fetchImpl = fetch) {
@@ -200,29 +232,29 @@ async function getOrCreateMediaFolder(api) {
   return created.data;
 }
 
-async function uploadPdf(api, report, folderId) {
+async function uploadFile(api, file, folderId) {
   const form = new FormData();
   form.append(
     "files",
-    new Blob([report.file_bytes], { type: "application/pdf" }),
-    report.file_name,
+    new Blob([file.bytes], { type: "application/octet-stream" }),
+    file.fileName,
   );
   form.append(
     "fileInfo",
     JSON.stringify({
-      name: report.file_name,
+      name: file.fileName,
       alternativeText: null,
       caption: null,
       folder: folderId,
     }),
   );
 
-  const file = await api.request("/upload/files", {
+  const uploadedFile = await api.request("/upload/files", {
     method: "POST",
     body: form,
   });
-  if (!Number.isInteger(file?.id)) throw new Error("PDF upload failed.");
-  return file;
+  if (!Number.isInteger(uploadedFile?.id)) throw new Error("File upload failed.");
+  return uploadedFile;
 }
 
 function setPublicAction(permissions, action) {
@@ -273,7 +305,14 @@ async function seed({ categories, api, log = console.log }) {
     );
     log(`${existingCategory ? "Updated" : "Created"} category: ${input.name}`);
 
-    for (const report of input.shareholder_relation) {
+    await runInParallel(input.shareholder_relation, async (report) => {
+      let sourceFile;
+      try {
+        sourceFile = await loadFile(report.file_path);
+      } catch (error) {
+        throw new Error(`${report.title}: ${error.message}`);
+      }
+
       const existingReport = savedReports.find(
         (item) =>
           item.title === report.title &&
@@ -281,7 +320,10 @@ async function seed({ categories, api, log = console.log }) {
       );
 
       let file = existingReport?.file;
-      if (file?.name === report.file_name && Number(file.size) === report.size) {
+      if (
+        file?.name === sourceFile.fileName &&
+        Number(file.size) === sourceFile.size
+      ) {
         if (file.folder === undefined) {
           file = await api.request(`/upload/files/${file.id}`);
         }
@@ -290,13 +332,13 @@ async function seed({ categories, api, log = console.log }) {
       const fileFolderId =
         typeof file?.folder === "object" ? file.folder?.id : file?.folder;
       if (
-        file?.name === report.file_name &&
-        Number(file.size) === report.size &&
+        file?.name === sourceFile.fileName &&
+        Number(file.size) === sourceFile.size &&
         Number(fileFolderId) === mediaFolder.id
       ) {
         reused += 1;
       } else {
-        file = await uploadPdf(api, report, mediaFolder.id);
+        file = await uploadFile(api, sourceFile, mediaFolder.id);
         uploaded += 1;
         if (existingReport?.file?.id) {
           log(`Retained replaced media ${existingReport.file.id} for manual review.`);
@@ -317,7 +359,7 @@ async function seed({ categories, api, log = console.log }) {
         },
       });
       log(`${existingReport ? "Updated" : "Created"} report: ${report.title}`);
-    }
+    });
   }
 
   await enablePublicReads(api);
@@ -331,11 +373,10 @@ async function main() {
     0,
   );
   const categoryLabel = categories.length === 1 ? "category" : "categories";
-  console.log(
-    `Validated ${categories.length} ${categoryLabel} and ${reportCount} reports.`,
-  );
+  console.log(`Found ${categories.length} ${categoryLabel} and ${reportCount} reports.`);
 
   if (process.argv.includes("--dry-run")) {
+    await validateReportFiles(categories);
     console.log("Dry run complete. Strapi was not changed.");
     return;
   }
@@ -347,7 +388,7 @@ async function main() {
 
   const result = await seed({ categories, api });
   console.log(
-    `Seed complete. ${result.uploaded} PDFs uploaded and ${result.reused} reused.`,
+    `Seed complete. ${result.uploaded} files uploaded and ${result.reused} reused.`,
   );
 }
 
@@ -363,9 +404,11 @@ module.exports = {
   PUBLIC_ACTIONS,
   createApi,
   getOrCreateMediaFolder,
-  loadPdf,
+  loadFile,
   readSeedData,
+  runInParallel,
   seed,
   setPublicAction,
-  uploadPdf,
+  uploadFile,
+  validateReportFiles,
 };

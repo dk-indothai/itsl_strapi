@@ -130,16 +130,26 @@ data retention rules and cleanup for unattached uploads.
 
 ## Shareholder Relation seed
 
-`scripts/seed_shareholder_relation.js` imports the categories, reports and PDFs
+`scripts/seed_shareholder_relation.js` imports the categories, reports and files
 defined by `migration_data/shareholder_relation_category.json` and
 `migration_data/files/`. Strapi must already be running with its database tables
-created. Uploaded PDFs are organized in the root Media Library folder
+created. Uploaded files are organized in the root Media Library folder
 **Shareholding Relation**. Validate the local migration data without contacting
 Strapi first:
 
-Each report's `file_path` may be either a PDF URL or a filename stored in
-`migration_data/files/`. Remote PDFs are downloaded and validated when the seed
-runs.
+Each report's `file_path` may be either an HTTP(S) file URL or a filename stored
+in `migration_data/files/`. Files may use any type supported by the configured
+Strapi Media Library. Remote files are downloaded and checked to be nonempty
+when the seed runs. A report with an empty `file_path` is logged by title and
+skipped; the rest of the migration continues. File downloads and report uploads
+run through six asynchronous workers so large migrations do not run one file at
+a time or hold every downloaded file in memory. When a category contains the
+same report title more than once, the first entry is kept and later duplicates
+are logged and skipped.
+
+The upload allowlist includes `text/html` for the legacy regulatory reports that
+are stored as HTML documents. Other global upload restrictions and the private
+resume/complaint validation remain unchanged.
 
 ```bash
 node scripts/seed_shareholder_relation.js --dry-run
@@ -149,9 +159,7 @@ Pass Super Admin credentials only through the process environment when applying
 the seed:
 
 ```bash
-STRAPI_ADMIN_EMAIL='admin@example.com' \
-STRAPI_ADMIN_PASSWORD='runtime-secret' \
-node scripts/seed_shareholder_relation.js
+STRAPI_ADMIN_EMAIL="----@gmail.com" STRAPI_ADMIN_PASSWORD="-----" STRAPI_URL="http://localhost:1337" node scripts/seed_shareholder_relation.js
 ```
 
 `STRAPI_URL` defaults to `http://localhost:1337` and can be set to another
@@ -159,7 +167,7 @@ HTTP(S) Strapi address. Never add the credentials to `.env` files committed to
 Git or to the migration JSON.
 
 The script creates missing records and updates exact name/title matches. It
-publishes seeded categories and reports, uploads public PDFs through the Media
+publishes seeded categories and reports, uploads public files through the Media
 Library, reuses an attached file when its filename and size already match, and
 enables Public Find/Find One for both shareholder collection types. It preserves
 all unrelated Public-role permissions and does not delete records absent from the

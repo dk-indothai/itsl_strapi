@@ -7,22 +7,29 @@ const {
   MEDIA_FOLDER_NAME,
   PUBLIC_ACTIONS,
   getOrCreateMediaFolder,
-  loadPdf,
+  loadFile,
   readSeedData,
+  runInParallel,
   setPublicAction,
-  uploadPdf,
+  uploadFile,
 } = require("../scripts/seed_shareholder_relation");
 
 test("the checked-in shareholder migration data is valid", async () => {
-  const categories = await readSeedData(
-    undefined,
-    undefined,
-    async () => new Response("%PDF-1.4 test"),
-  );
+  const skipped = [];
+  const categories = await readSeedData(undefined, (message) => {
+    skipped.push(message);
+  });
   assert.ok(categories.length > 0);
   assert.ok(
-    categories.every((category) => category.shareholder_relation.length > 0),
+    categories.every((category) =>
+      category.shareholder_relation.every((report) => report.file_path),
+    ),
   );
+  for (const category of categories) {
+    const titles = category.shareholder_relation.map((report) => report.title);
+    assert.equal(new Set(titles).size, titles.length);
+  }
+  assert.ok(skipped.every((message) => message.startsWith("Skipped ")));
 });
 
 test("public permission changes preserve unrelated actions", () => {
@@ -69,13 +76,11 @@ test("uses one root Shareholding Relation media folder", async () => {
   });
 });
 
-test("uploads PDFs into the Shareholding Relation folder", async () => {
-  const [category] = await readSeedData(
-    undefined,
-    undefined,
-    async () => new Response("%PDF-1.4 test"),
-  );
-  const [report] = category.shareholder_relation;
+test("uploads files into the Shareholding Relation folder", async () => {
+  const report = {
+    file_bytes: Buffer.from("spreadsheet data"),
+    file_name: "report.xlsx",
+  };
   let folder;
   const api = {
     async request(_endpoint, options) {
@@ -84,17 +89,32 @@ test("uploads PDFs into the Shareholding Relation folder", async () => {
     },
   };
 
-  await uploadPdf(api, report, 42);
+  await uploadFile(api, report, 42);
   assert.equal(folder, 42);
 });
 
-test("file_path can be a PDF URL", async () => {
-  const pdf = await loadPdf(
-    "https://example.com/report.pdf",
+test("file_path can be a URL for any file type", async () => {
+  const file = await loadFile(
+    "https://example.com/report.xlsx",
     undefined,
-    async () => new Response("%PDF-1.4 test"),
+    async () => new Response("spreadsheet data"),
   );
 
-  assert.equal(pdf.fileName, "report.pdf");
-  assert.equal(pdf.bytes.subarray(0, 5).toString(), "%PDF-");
+  assert.equal(file.fileName, "report.xlsx");
+  assert.equal(file.bytes.toString(), "spreadsheet data");
+});
+
+test("file work runs asynchronously with bounded concurrency", async () => {
+  let active = 0;
+  let highest = 0;
+
+  await runInParallel(Array.from({ length: 12 }), async () => {
+    active += 1;
+    highest = Math.max(highest, active);
+    await new Promise((resolve) => setTimeout(resolve, 5));
+    active -= 1;
+  });
+
+  assert.ok(highest > 1);
+  assert.ok(highest <= 6);
 });

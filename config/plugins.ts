@@ -10,6 +10,7 @@ const allowedMediaTypes = [
   "application/msword",
   "application/vnd.ms-excel",
   "application/vnd.openxmlformats-officedocument.*",
+  "text/html",
   "text/plain",
   "text/csv",
 ];
