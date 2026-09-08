@@ -7,14 +7,18 @@ const {
   MEDIA_FOLDER_NAME,
   PUBLIC_ACTIONS,
   buildReportData,
+  createApi,
   findSavedReport,
   getOrCreateMediaFolder,
+  inspectFile,
   loadFile,
   normalizeCreatedAt,
+  parseServerSentEvents,
   readSeedData,
   runInParallel,
   setPublicAction,
   uploadFile,
+  uploadRemoteFile,
   validateReportFiles,
 } = require("../scripts/seed_shareholder_relation");
 
@@ -201,15 +205,113 @@ test("uploads files into the Shareholding Relation folder with their source", as
   assert.equal(fileInfo.caption, "https://example.com/report.xlsx");
 });
 
-test("file_path can be a URL for any file type", async () => {
-  const file = await loadFile(
+test("remote file metadata is checked without downloading the body", async () => {
+  let method;
+  const file = await inspectFile(
     "https://example.com/report.xlsx",
     undefined,
-    async () => new Response("spreadsheet data"),
+    async (_url, options) => {
+      method = options.method;
+      return new Response(null, {
+        headers: { "content-length": "1600" },
+      });
+    },
   );
 
+  assert.equal(method, "HEAD");
   assert.equal(file.fileName, "report.xlsx");
-  assert.equal(file.bytes.toString(), "spreadsheet data");
+  assert.equal(file.size, 1.6);
+  assert.equal(file.bytes, undefined);
+});
+
+test("remote sources are not loaded into the seed process", async () => {
+  await assert.rejects(
+    loadFile("https://example.com/report.pdf"),
+    /must be a filename from migration_data\/files/,
+  );
+});
+
+test("parses Strapi server-sent upload events", () => {
+  const events = parseServerSentEvents(
+    'event: file:complete\ndata: {"file":{"id":7}}\n\n' +
+      'event: stream:complete\ndata: {"data":[{"id":7}],"errors":[]}\n\n',
+  );
+
+  assert.equal(events[0].event, "file:complete");
+  assert.equal(events[0].data.file.id, 7);
+});
+
+test("remote files are fetched by Strapi and retain their source caption", async () => {
+  const calls = [];
+  const api = {
+    async request(endpoint, options) {
+      calls.push({ endpoint, options });
+      if (endpoint === "/upload/actions/upload-from-urls") {
+        return (
+          'event: file:complete\ndata: {"file":{"id":7,"name":"report.pdf"}}\n\n' +
+          'event: stream:complete\ndata: {"data":[{"id":7}],"errors":[]}\n\n'
+        );
+      }
+      return { id: 7, name: "report.pdf" };
+    },
+  };
+
+  const file = await uploadRemoteFile(
+    api,
+    "https://example.com/report.pdf",
+    42,
+  );
+
+  assert.equal(file.id, 7);
+  assert.deepEqual(calls[0], {
+    endpoint: "/upload/actions/upload-from-urls",
+    options: {
+      method: "POST",
+      json: {
+        urls: ["https://example.com/report.pdf"],
+        folderId: 42,
+      },
+      responseType: "text",
+      timeoutMs: 600_000,
+    },
+  });
+  assert.equal(calls[1].endpoint, "/upload/files/7");
+  assert.equal(calls[1].options.method, "PUT");
+  assert.deepEqual(JSON.parse(calls[1].options.body.get("fileInfo")), {
+    name: "report.pdf",
+    alternativeText: null,
+    caption: "https://example.com/report.pdf",
+    folder: 42,
+  });
+});
+
+test("remote upload event failures include the Strapi message", async () => {
+  const api = {
+    async request() {
+      return 'event: file:error\ndata: {"message":"source fetch failed"}\n\n';
+    },
+  };
+
+  await assert.rejects(
+    uploadRemoteFile(api, "https://example.com/report.pdf", 42),
+    /source fetch failed/,
+  );
+});
+
+test("Strapi HTML errors retain endpoint, status and content type", async () => {
+  const api = createApi(
+    "https://strapi.example.com",
+    async () =>
+      new Response("<html><head></head><body>Payload Too Large</body></html>", {
+        status: 413,
+        headers: { "content-type": "text/html" },
+      }),
+  );
+
+  await assert.rejects(
+    api.request("/upload/files", { method: "POST" }),
+    /\/upload\/files failed \(413\): expected JSON but received text\/html/,
+  );
 });
 
 test("file work runs asynchronously with bounded concurrency", async () => {
@@ -240,7 +342,7 @@ test("unavailable source files are logged and skipped", async () => {
         ],
       },
     ],
-    async () => new Response("", { status: 404 }),
+    async () => new Response(null, { status: 404 }),
     (message) => logs.push(message),
   );
 

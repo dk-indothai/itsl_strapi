@@ -21,9 +21,12 @@
  * - The same title with a different file_path is seeded as a separate report.
  *
  * File processing:
- * - Uses four asynchronous workers so downloads/uploads run in parallel without
+ * - Uses four asynchronous workers so checks/uploads run in parallel without
  *   loading every source file into memory at once.
- * - Remote downloads time out after 60 seconds.
+ * - Remote files are checked with HEAD and are fetched directly by Strapi when
+ *   an upload is needed, avoiding production request-body limits.
+ * - Remote checks time out after 60 seconds and server-side URL uploads after
+ *   ten minutes.
  * - Strapi requests time out after 120 seconds.
  * - Media is stored in the root "Shareholding Relation" Media Library folder,
  *   which is created when missing.
@@ -32,7 +35,7 @@
  * - Categories match by exact name.
  * - Reports match by title, category and source file. The source file_path is
  *   stored in the Media Library caption so same-title reports remain distinct.
- * - Sources are downloaded again to determine their filename and size.
+ * - Remote source headers are checked again to determine filename and size.
  * - Attached media is reused only when its filename, size and folder match.
  * - Missing, changed or misplaced attachments are uploaded again.
  * - Replaced media is retained for manual orphan review and is not deleted.
@@ -64,8 +67,9 @@ const DATA_FILE = path.join(
 const FILES_DIR = path.join(ROOT, "migration_data/files");
 const MEDIA_FOLDER_NAME = "Shareholding Relation";
 const FILE_CONCURRENCY = 4;
-const FILE_DOWNLOAD_TIMEOUT_MS = 60_000;
+const FILE_INSPECTION_TIMEOUT_MS = 60_000;
 const STRAPI_REQUEST_TIMEOUT_MS = 120_000;
+const REMOTE_UPLOAD_TIMEOUT_MS = 600_000;
 
 const CATEGORY =
   "api::shareholder-relation-category.shareholder-relation-category";
@@ -107,44 +111,67 @@ function normalizeCreatedAt(value, name) {
   return new Date(`${input.replace(" ", "T")}+05:30`).toISOString();
 }
 
-async function loadFile(source, filesDir = FILES_DIR, fetchImpl = fetch) {
-  let fileName;
-  let bytes;
+function isRemoteSource(source) {
+  return /^https?:\/\//i.test(source);
+}
 
-  if (/^https?:\/\//i.test(source)) {
-    const url = new URL(source);
-    fileName = decodeURIComponent(path.posix.basename(url.pathname));
-    let response;
-    try {
-      response = await fetchImpl(url, {
-        signal: AbortSignal.timeout(FILE_DOWNLOAD_TIMEOUT_MS),
-      });
-    } catch (error) {
-      throw new Error(`Could not download ${source}: ${error.message}`);
-    }
-    if (!response.ok) {
-      throw new Error(`Could not download ${source} (${response.status}).`);
-    }
-    bytes = Buffer.from(await response.arrayBuffer());
-  } else {
-    if (path.basename(source) !== source) {
-      throw new Error(
-        `${source} must be a filename from migration_data/files.`,
-      );
-    }
-    fileName = source;
-    bytes = await fs.readFile(path.join(filesDir, source));
-  }
+function fileSizeInKilobytes(byteLength) {
+  return Math.round((byteLength / 1000) * 100) / 100;
+}
 
+function validateFileName(fileName, source) {
   if (!fileName || path.basename(fileName) !== fileName) {
     throw new Error(`${source} must point to a named file.`);
   }
+  return fileName;
+}
+
+async function loadFile(source, filesDir = FILES_DIR) {
+  if (isRemoteSource(source) || path.basename(source) !== source) {
+    throw new Error(`${source} must be a filename from migration_data/files.`);
+  }
+
+  const fileName = validateFileName(source, source);
+  const bytes = await fs.readFile(path.join(filesDir, source));
+
   if (!bytes.length) throw new Error(`${source} is empty.`);
 
   return {
     bytes,
     fileName,
-    size: Math.round((bytes.length / 1000) * 100) / 100,
+    size: fileSizeInKilobytes(bytes.length),
+  };
+}
+
+async function inspectFile(source, filesDir = FILES_DIR, fetchImpl = fetch) {
+  if (!isRemoteSource(source)) return loadFile(source, filesDir);
+
+  const url = new URL(source);
+  const fileName = validateFileName(
+    decodeURIComponent(path.posix.basename(url.pathname)),
+    source,
+  );
+  let response;
+  try {
+    response = await fetchImpl(url, {
+      method: "HEAD",
+      signal: AbortSignal.timeout(FILE_INSPECTION_TIMEOUT_MS),
+    });
+  } catch (error) {
+    throw new Error(`Could not inspect ${source}: ${error.message}`);
+  }
+  if (!response.ok) {
+    throw new Error(`Could not inspect ${source} (${response.status}).`);
+  }
+
+  const byteLength = Number(response.headers.get("content-length"));
+  if (!Number.isSafeInteger(byteLength) || byteLength <= 0) {
+    throw new Error(`${source} did not provide a positive Content-Length.`);
+  }
+
+  return {
+    fileName,
+    size: fileSizeInKilobytes(byteLength),
   };
 }
 
@@ -233,7 +260,7 @@ async function validateReportFiles(
   let unavailable = 0;
   await runInParallel(reports, async (report) => {
     try {
-      await loadFile(report.file_path, FILES_DIR, fetchImpl);
+      await inspectFile(report.file_path, FILES_DIR, fetchImpl);
     } catch (error) {
       unavailable += 1;
       log(`Unavailable file for ${report.title}: ${error.message}`);
@@ -255,21 +282,41 @@ function createApi(baseUrl, fetchImpl = fetch) {
     if (options.json) headers.set("Content-Type", "application/json");
 
     let response;
+    const timeoutMs = options.timeoutMs || STRAPI_REQUEST_TIMEOUT_MS;
     try {
       response = await fetchImpl(new URL(endpoint, base), {
         method: options.method || "GET",
         headers,
         body: options.json ? JSON.stringify(options.json) : options.body,
-        signal: AbortSignal.timeout(STRAPI_REQUEST_TIMEOUT_MS),
+        signal: AbortSignal.timeout(timeoutMs),
       });
     } catch (error) {
       throw new Error(`${endpoint} request failed: ${error.message}`);
     }
     const text = await response.text();
-    const body = text ? JSON.parse(text) : null;
+    let body = text || null;
+    if (text && options.responseType !== "text") {
+      try {
+        body = JSON.parse(text);
+      } catch {
+        const contentType =
+          response.headers.get("content-type") || "unknown content type";
+        const preview = text.replace(/\s+/g, " ").trim().slice(0, 160);
+        throw new Error(
+          `${endpoint} failed (${response.status}): expected JSON but received ${contentType}${preview ? `: ${preview}` : ""}`,
+        );
+      }
+    }
     if (!response.ok) {
+      const responseMessage =
+        body && typeof body === "object"
+          ? body.error?.message
+          : String(body || "")
+              .replace(/\s+/g, " ")
+              .trim()
+              .slice(0, 160);
       throw new Error(
-        `${endpoint} failed (${response.status}): ${body?.error?.message || response.statusText}`,
+        `${endpoint} failed (${response.status}): ${responseMessage || response.statusText}`,
       );
     }
     return body;
@@ -363,6 +410,66 @@ async function uploadFile(api, file, folderId, source) {
   if (!Number.isInteger(uploadedFile?.id))
     throw new Error("File upload failed.");
   return uploadedFile;
+}
+
+function parseServerSentEvents(text) {
+  const events = [];
+  for (const block of text.split(/\r?\n\r?\n/)) {
+    let event;
+    const dataLines = [];
+    for (const line of block.split(/\r?\n/)) {
+      if (line.startsWith("event:")) event = line.slice(6).trim();
+      if (line.startsWith("data:")) dataLines.push(line.slice(5).trimStart());
+    }
+    if (!event || !dataLines.length) continue;
+
+    const dataText = dataLines.join("\n");
+    try {
+      events.push({ event, data: JSON.parse(dataText) });
+    } catch {
+      throw new Error(`Strapi returned invalid ${event} event data.`);
+    }
+  }
+  return events;
+}
+
+async function uploadRemoteFile(api, source, folderId) {
+  const responseText = await api.request("/upload/actions/upload-from-urls", {
+    method: "POST",
+    json: { urls: [source], folderId },
+    responseType: "text",
+    timeoutMs: REMOTE_UPLOAD_TIMEOUT_MS,
+  });
+  const events = parseServerSentEvents(responseText || "");
+  const failed = events.find((item) => item.event === "file:error");
+  if (failed) {
+    throw new Error(failed.data?.message || "Remote file upload failed.");
+  }
+
+  const completed = events.find((item) => item.event === "file:complete");
+  const uploadedFile = completed?.data?.file;
+  if (!Number.isInteger(uploadedFile?.id)) {
+    throw new Error("Strapi did not complete the remote file upload.");
+  }
+
+  const form = new FormData();
+  form.append(
+    "fileInfo",
+    JSON.stringify({
+      name: uploadedFile.name,
+      alternativeText: null,
+      caption: source,
+      folder: folderId,
+    }),
+  );
+  const updatedFile = await api.request(`/upload/files/${uploadedFile.id}`, {
+    method: "PUT",
+    body: form,
+  });
+  if (!Number.isInteger(updatedFile?.id)) {
+    throw new Error("Strapi did not save the remote file metadata.");
+  }
+  return updatedFile;
 }
 
 function buildReportData(report, fileId, categoryDocumentId) {
@@ -461,7 +568,7 @@ async function seed({ categories, api, log = console.log }) {
     await runInParallel(input.shareholder_relation, async (report) => {
       let sourceFile;
       try {
-        sourceFile = await loadFile(report.file_path);
+        sourceFile = await inspectFile(report.file_path);
       } catch (error) {
         unavailable += 1;
         log(`Skipped unavailable file for ${report.title}: ${error.message}`);
@@ -505,12 +612,14 @@ async function seed({ categories, api, log = console.log }) {
         reused += 1;
       } else {
         try {
-          file = await uploadFile(
-            api,
-            sourceFile,
-            mediaFolder.id,
-            report.file_path,
-          );
+          file = isRemoteSource(report.file_path)
+            ? await uploadRemoteFile(api, report.file_path, mediaFolder.id)
+            : await uploadFile(
+                api,
+                sourceFile,
+                mediaFolder.id,
+                report.file_path,
+              );
         } catch (error) {
           throw new Error(`${report.title}: ${error.message}`);
         }
@@ -587,12 +696,16 @@ module.exports = {
   createApi,
   findSavedReport,
   getOrCreateMediaFolder,
+  inspectFile,
+  isRemoteSource,
   loadFile,
   normalizeCreatedAt,
+  parseServerSentEvents,
   readSeedData,
   runInParallel,
   seed,
   setPublicAction,
   uploadFile,
+  uploadRemoteFile,
   validateReportFiles,
 };

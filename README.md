@@ -139,16 +139,19 @@ Strapi first:
 
 Each report's `file_path` may be either an HTTP(S) file URL or a filename stored
 in `migration_data/files/`. Files may use any type supported by the configured
-Strapi Media Library. Remote files are downloaded and checked to be nonempty
-when the seed runs. Each report must also contain `created_at` in
+Strapi Media Library. Remote files are checked with a `HEAD` request and a
+positive `Content-Length` when the seed runs, so large files are not downloaded
+into the seed process merely to validate their name and size. Each report must
+also contain `created_at` in
 `YYYY-MM-DD HH:mm:ss` format. The seed interprets it in Asia/Kolkata time and
 stores it in `original_created_at`. The migration JSON keeps the source key
 `created_at`; the different Strapi field name avoids a collision with the database
 column used by Strapi's system-managed `createdAt`. A report with an empty `file_path` is logged by title
-and skipped; the rest of the migration continues. File downloads and report uploads
+and skipped; the rest of the migration continues. File checks and report uploads
 run through four asynchronous workers so large migrations do not run one file at
-a time or hold every downloaded file in memory. Remote downloads allow up to 60
-seconds and Strapi requests up to two minutes. Only entries with the same title
+a time or hold every remote file in memory. Remote checks allow up to 60 seconds,
+ordinary Strapi requests up to two minutes and server-side remote uploads up to
+ten minutes. Only entries with the same title
 and the same `file_path` in one category are duplicates and are skipped. The
 same title with a different file is imported as a separate report. The source
 `file_path` is stored as the Media Library caption so reruns can match each
@@ -158,9 +161,18 @@ After adding the `original_created_at` schema field, restart Strapi before rerun
 seed. Rerunning backfills the field on matching reports and reuses unchanged
 attachments according to the rules above.
 
-Missing local files and remote files that cannot be downloaded are logged by
+Missing local files and remote files that cannot be inspected are logged by
 report title and skipped. Strapi upload and record-creation errors remain fatal
 because they indicate a backend or permission problem.
+
+URL-based attachments are fetched by Strapi through its authenticated
+`POST /upload/actions/upload-from-urls` endpoint and then stored by the configured
+upload provider. The seed sends only the source URL through the production
+gateway, avoiding request-body limits for large source files. Filename-based
+attachments from `migration_data/files/` continue to use multipart uploads. The
+seed stores the original URL or filename as the Media Library caption after a
+successful upload so reruns retain exact source matching. Non-JSON Strapi or
+gateway responses are reported with their endpoint, status and content type.
 
 The upload allowlist includes `text/html` for the legacy regulatory reports that
 are stored as HTML documents and `application/zip` for legacy archive reports.
