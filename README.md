@@ -128,6 +128,20 @@ counts.
 Production still needs restricted CORS, rate limiting, malware scanning, private
 data retention rules and cleanup for unattached uploads.
 
+## Investor content ordering
+
+Overview, Disclosure 2015 and Client Relation records have a required integer
+`order` field with a default value of `0`. Smaller numbers appear first on the
+website. Records with the same value are ordered by Strapi's system-managed
+`createdAt` field, newest first; editors should not add or maintain a separate
+creation-date field for this purpose.
+
+New records default to `0`. Existing records can remain null after schema
+synchronization; assign an explicit order in Content Manager when each record is
+next maintained. The website temporarily treats those legacy values as `0`.
+Back up the database and restart Strapi after deploying the schema change. The
+change does not alter public permissions, Draft & Publish behavior or API paths.
+
 ## Shareholder Relation seed
 
 `scripts/seed_shareholder_relation.js` imports the categories, reports and files

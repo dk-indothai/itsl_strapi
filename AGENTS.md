@@ -57,6 +57,11 @@
 - Preserve current public read access for published Software, Software Category,
   Opening, Blog, Overview, Shareholder Relation, Shareholder Relation Category,
   Financial Report, Disclosure 2015, and Client Relation content.
+- Overview, Disclosure 2015 and Client Relation use a required integer `order`
+  field with default `0`. Lower values appear first; ties use the system
+  `createdAt` newest first. Existing records can remain null after schema sync;
+  the website treats those legacy values as `0` until editors update them. Do not
+  add a duplicate editable creation-date field.
 - Keep Candidate creation tied to an Open opening and a valid unused private
   resume. Keep Complaint creation tied to a valid unused private complaint file
   when an attachment is provided.
