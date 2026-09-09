@@ -219,3 +219,84 @@ for manual orphan review instead of being deleted automatically.
 
 Shareholder report titles use Strapi's long-text field so regulatory titles are
 stored completely instead of being truncated at 255 characters.
+
+## RichText++ (MarkDown) editor
+
+The editor source lives in `src/plugins/markdown-table/`, a private npm workspace
+maintained with this application. Its demo, tests, and design notes live beside
+the component. The application uses one root `package-lock.json`; do not run a
+separate install inside the plugin or generate a tarball.
+
+`config/plugins.ts` resolves this local plugin. `src/admin/app.tsx` registers it
+for existing Rich text (Markdown) fields: Blog `content`, Overview `description`,
+and Opening `description`. Their schemas and stored Markdown strings are preserved.
+New fields can also select **RichText++ (MarkDown)** under Content-Type Builder → Custom.
+
+Use Node 24 LTS for local development, builds, and production. With nvm:
+
+```bash
+nvm use
+```
+
+Install dependencies from this repository's root:
+
+```bash
+npm ci
+npm run build
+npm run develop
+```
+
+`npm run build` builds the plugin before the Strapi admin. `npm run dev` and
+`npm run develop` also build the plugin before starting Strapi. The generated
+`src/plugins/markdown-table/dist/` directory is ignored by Git. Include that
+folder in deployment artifacts along with the application build; install build
+dependencies before building, even if the final runtime omits development dependencies.
+
+When editing the plugin, run this in another terminal to rebuild it on changes:
+
+```bash
+npm run watch:richtext
+```
+
+For a standalone editor demo without starting Strapi or connecting to a database:
+
+```bash
+npm run demo:richtext
+```
+
+The demo runs at http://127.0.0.1:5173. Editor starts with interactive text and
+table editing. Use **Headings** for H1–H6, **Table** for the size picker,
+**+ Content** to add text, **Raw Markdown** to edit the source, and **Preview**
+to read the rendered result.
+
+`npm test` runs the backend tests and plugin unit tests. `npm run typecheck`
+checks server, admin, and plugin source. `npm run test:richtext:e2e` runs the
+plugin browser tests on a dedicated demo server at port 5174. Install Playwright
+Chromium once with `npm exec --workspace strapi-plugin-markdown-table -- playwright install chromium`
+if it is not already available.
+
+To restore Strapi's built-in editor for existing Markdown fields, remove the
+`registerMarkdownReplacement(app)` call from `src/admin/app.tsx`.
+
+### Docker builds with the local editor
+
+Build from this repository's root so Docker can include both local packages:
+
+```bash
+docker build -f Dockerfile -t itsl-strapi:local .
+# Alpine alternative:
+docker build -f Dockerfile.prod -t itsl-strapi:alpine .
+```
+
+Both multi-stage Dockerfiles copy `providers/private-media/` and the editor's
+workspace manifest before `npm ci --include=dev`. The existing `npm run build`
+command then builds the plugin and Strapi admin, after which development
+packages are pruned. Runtime images include the compiled plugin and its remaining
+workspace dependencies at `src/plugins/markdown-table/`, keeping npm's local
+package links valid. The Alpine image uses `/opt/app` for every stage.
+
+`Dockerfile.single` already copies the complete application before installation
+and builds the plugin through the root build command. It keeps build dependencies
+in its single-stage image. `.dockerignore` excludes nested `node_modules`, `dist`,
+build caches, and browser-test output so local workstation artifacts cannot
+replace dependencies or generated files created inside the image.
