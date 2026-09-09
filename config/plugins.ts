@@ -47,6 +47,10 @@ const config = ({
     : undefined;
 
   return {
+    "markdown-table": {
+      enabled: true,
+      resolve: "./src/plugins/markdown-table",
+    },
     "users-permissions": {
       config: {
         jwtManagement: "refresh",

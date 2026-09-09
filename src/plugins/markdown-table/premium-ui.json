@@ -1,0 +1,17 @@
+{
+  "profile": "product-admin",
+  "sourceRoots": ["admin/src", "demo"],
+  "locale": "en",
+  "canonicalMap": "DESIGN.md",
+  "requiredCapabilities": ["Form", "Select/Listbox", "Scrollbar"],
+  "ownership": { "Select/Listbox": "native" },
+  "requiredCommands": ["typecheck", "unit", "e2e"],
+  "commands": {
+    "typecheck": "npm run typecheck",
+    "unit": "npm test",
+    "e2e": "npm run test:e2e"
+  },
+  "evidence": {
+    "failurePaths": "tests/e2e/editor.spec.ts"
+  }
+}

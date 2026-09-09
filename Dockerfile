@@ -3,7 +3,10 @@ FROM node:22-bookworm-slim AS build
 WORKDIR /opt/app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+# Local file dependencies and workspace metadata must exist before npm ci.
+COPY providers/private-media ./providers/private-media
+COPY src/plugins/markdown-table/package.json ./src/plugins/markdown-table/package.json
+RUN npm ci --include=dev
 
 COPY . .
 RUN npm run build
@@ -19,6 +22,8 @@ COPY --from=build /opt/app/package.json /opt/app/package-lock.json ./
 COPY --from=build /opt/app/node_modules ./node_modules
 COPY --from=build /opt/app/compiled/config ./config
 COPY --from=build /opt/app/compiled/src ./src
+# TypeScript excludes local plugins; preserve their build and workspace dependencies.
+COPY --from=build /opt/app/src/plugins/markdown-table ./src/plugins/markdown-table
 COPY --from=build /opt/app/dist/build ./build
 COPY --from=build /opt/app/favicon.png ./favicon.png
 COPY --from=build /opt/app/providers ./providers

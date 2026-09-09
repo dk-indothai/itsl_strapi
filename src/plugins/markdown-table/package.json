@@ -1,0 +1,72 @@
+{
+  "name": "strapi-plugin-markdown-table",
+  "version": "1.2.0",
+  "description": "A Strapi 5 Markdown custom field with a visual GFM table editor.",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    "./package.json": "./package.json",
+    "./strapi-admin": {
+      "types": "./admin/src/index.ts",
+      "source": "./admin/src/index.ts",
+      "import": "./dist/admin/index.js",
+      "require": "./dist/admin/index.cjs",
+      "default": "./dist/admin/index.js"
+    },
+    "./strapi-server": {
+      "types": "./server/src/index.ts",
+      "source": "./server/src/index.ts",
+      "import": "./dist/server/index.js",
+      "require": "./dist/server/index.cjs",
+      "default": "./dist/server/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsup",
+    "dev": "vite --host 127.0.0.1",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "watch": "tsup --watch"
+  },
+  "dependencies": {
+    "react-markdown": "^10.1.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5"
+  },
+  "peerDependencies": {
+    "@strapi/design-system": "^2.0.0",
+    "@strapi/strapi": "^5.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "react-intl": "^6.0.0 || ^7.0.0",
+    "styled-components": "^6.0.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "4.13.0",
+    "@playwright/test": "1.63.0",
+    "@types/mdast": "4.0.4",
+    "@types/node": "22.20.1",
+    "@types/react": "18.3.31",
+    "@types/react-dom": "18.3.7",
+    "@vitejs/plugin-react": "4.7.0",
+    "prettier": "3.9.6",
+    "tsup": "8.5.1",
+    "typescript": "5.9.3",
+    "vite": "5.4.21",
+    "vitest": "3.2.7"
+  },
+  "engines": {
+    "node": ">=20.0.0 <25"
+  },
+  "strapi": {
+    "name": "markdown-table",
+    "displayName": "RichText++ (MarkDown)",
+    "description": "Write Markdown and build tables visually.",
+    "kind": "plugin"
+  },
+  "private": true
+}

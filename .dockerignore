@@ -12,3 +12,12 @@ Dockerfile
 docker-compose.yml
 npm-debug.log
 gcs_service_account.json
+
+# Local workspaces must be installed and compiled inside the image.
+**/node_modules
+**/dist
+**/build
+**/.cache
+**/test-results
+**/playwright-report
+**/*.tsbuildinfo

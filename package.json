@@ -4,18 +4,24 @@
   "private": true,
   "description": "A Strapi application",
   "scripts": {
-    "build": "strapi build",
+    "build": "npm run build:richtext && strapi build",
     "console": "strapi console",
     "deploy": "strapi deploy",
     "dev": "strapi develop",
     "develop": "strapi develop",
     "start": "strapi start",
     "migrate:private-media": "node scripts/private-media-migration.js",
-    "test": "node --test tests/*.test.js",
-    "typecheck": "tsc --noEmit",
+    "test": "node --test tests/*.test.js && npm run test --workspace strapi-plugin-markdown-table",
+    "typecheck": "tsc --noEmit && tsc --project src/admin/tsconfig.json --noEmit && npm run typecheck --workspace strapi-plugin-markdown-table",
     "strapi": "strapi",
     "upgrade": "npx @strapi/upgrade latest",
-    "upgrade:dry": "npx @strapi/upgrade latest --dry"
+    "upgrade:dry": "npx @strapi/upgrade latest --dry",
+    "build:richtext": "npm run build --workspace strapi-plugin-markdown-table",
+    "predev": "npm run build:richtext",
+    "predevelop": "npm run build:richtext",
+    "watch:richtext": "npm run watch --workspace strapi-plugin-markdown-table",
+    "demo:richtext": "npm run dev --workspace strapi-plugin-markdown-table",
+    "test:richtext:e2e": "npm run test:e2e --workspace strapi-plugin-markdown-table"
   },
   "dependencies": {
     "@google-cloud/storage": "7.22.0",
@@ -30,7 +36,8 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-router-dom": "^6.30.3",
-    "styled-components": "^6.0.0"
+    "styled-components": "^6.0.0",
+    "strapi-plugin-markdown-table": "file:src/plugins/markdown-table"
   },
   "devDependencies": {
     "@types/node": "^20",
@@ -45,5 +52,8 @@
   "strapi": {
     "uuid": "6e86d7cd-d1fb-466e-b0c4-a8cdaa58ef90",
     "installId": "5391d80c814c6a9d1058646af3c1c4293724eb77f23517a052f767c2c02801ca"
-  }
+  },
+  "workspaces": [
+    "src/plugins/markdown-table"
+  ]
 }
