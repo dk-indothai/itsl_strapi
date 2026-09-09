@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS build
+FROM node:24-bookworm-slim AS build
 
 WORKDIR /opt/app
 
@@ -13,7 +13,7 @@ RUN npm run build
 RUN npx tsc --outDir /opt/app/compiled --declaration false --declarationMap false --sourceMap false --incremental false
 RUN npm prune --omit=dev
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 ENV NODE_ENV=production
 WORKDIR /opt/app

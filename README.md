@@ -232,7 +232,12 @@ for existing Rich text (Markdown) fields: Blog `content`, Overview `description`
 and Opening `description`. Their schemas and stored Markdown strings are preserved.
 New fields can also select **RichText++ (MarkDown)** under Content-Type Builder → Custom.
 
-Use Node 22, which is supported by both this editor and the existing upload provider.
+Use Node 24 LTS for local development, builds, and production. With nvm:
+
+```bash
+nvm use
+```
+
 Install dependencies from this repository's root:
 
 ```bash

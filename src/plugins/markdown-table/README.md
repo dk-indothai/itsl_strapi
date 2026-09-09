@@ -22,7 +22,7 @@ workspace source directly, so type checks work before a build.
 
 Use `npm run demo:richtext` to run the component demo on port 5173 without Strapi,
 a database, or credentials. Demo saves are held in memory and reset on refresh.
-Use Node 22 to match the application and its upload provider's supported runtime.
+Use Node 24 LTS to match the application runtime.
 
 ## Verification
 
