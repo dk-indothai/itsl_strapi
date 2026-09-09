@@ -455,7 +455,9 @@ export interface ApiBlogBlog extends Struct.CollectionTypeSchema {
   };
   attributes: {
     banner: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
-    content: Schema.Attribute.RichText & Schema.Attribute.Required;
+    content: Schema.Attribute.Text &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::markdown-table.markdown'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -743,7 +745,9 @@ export interface ApiOpeningOpening extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    description: Schema.Attribute.RichText & Schema.Attribute.Required;
+    description: Schema.Attribute.Text &
+      Schema.Attribute.Required &
+      Schema.Attribute.CustomField<'plugin::markdown-table.markdown'>;
     job_status: Schema.Attribute.Enumeration<['Open', 'Closed', 'Filled']> &
       Schema.Attribute.Required;
     locale: Schema.Attribute.String & Schema.Attribute.Private;

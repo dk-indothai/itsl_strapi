@@ -26,7 +26,8 @@
       ]
     },
     "content": {
-      "type": "richtext",
+      "type": "customField",
+      "customField": "plugin::markdown-table.markdown",
       "required": true
     },
     "publish_date": {

@@ -32,7 +32,8 @@
       "type": "text"
     },
     "description": {
-      "type": "richtext",
+      "type": "customField",
+      "customField": "plugin::markdown-table.markdown",
       "required": true
     },
     "candidates": {
