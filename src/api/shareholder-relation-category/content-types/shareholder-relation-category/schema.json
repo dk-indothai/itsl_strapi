@@ -22,7 +22,9 @@
       "mappedBy": "shareholder_relation_category"
     },
     "slug": {
-      "type": "string"
+      "type": "uid",
+      "targetField": "name",
+      "required": true
     }
   }
 }

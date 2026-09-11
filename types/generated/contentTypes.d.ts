@@ -827,7 +827,7 @@ export interface ApiShareholderRelationCategoryShareholderRelationCategory
       'oneToMany',
       'api::shareholder-relation.shareholder-relation'
     >;
-    slug: Schema.Attribute.String;
+    slug: Schema.Attribute.UID<'name'> & Schema.Attribute.Required;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
