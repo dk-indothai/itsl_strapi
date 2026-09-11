@@ -76,6 +76,10 @@
   Running the seed against Strapi requires explicit approval and credentials only
   through the process environment. Never place credentials in source, fixtures,
   shell history examples, or committed environment files.
+- `scripts/seed_financial_reports.js --dry-run` follows the same approval and
+  credential boundary. It must preserve multiple files for the same fiscal period,
+  use `null` quarter for Full Year records, and retain replaced media for manual
+  orphan review.
 - Preserve idempotent matching, skip-and-log handling for missing source files,
   `original_created_at` semantics, and manual orphan review. Do not delete records
   or earlier media merely because they are absent from migration fixtures.

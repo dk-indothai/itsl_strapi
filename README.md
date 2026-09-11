@@ -99,32 +99,6 @@ The existing service account is reused. It needs object create/read/delete acces
 both applicable buckets and permission to sign private read URLs. Keep the public
 bucket publicly readable and do not grant `allUsers` access to the private bucket.
 
-### Existing media migration
-
-The migration is deliberately staged:
-
-```bash
-npm run migrate:private-media -- dry-run
-npm run migrate:private-media -- apply
-npm run migrate:private-media -- finalize --confirm-delete-public-copies
-```
-
-Run `apply` only after taking a database backup. It copies and verifies private
-objects, then updates Strapi records; it does not delete public sources. Verify
-Candidate/Complaint access with a limited administrator and verify public software
-downloads before `finalize`. Finalize verifies each private destination again and
-then removes only the recorded public source objects.
-
-Do not restart a deployed Strapi instance with the dual provider and then delete or
-replace old Media Library records before `apply` has updated their provider name.
-The old rows still contain usable public URLs, but provider-owned deletion is safe
-only after the staged database update.
-
-The current dry run reports 2 unique resume files, 1 unique complaint attachment
-and 2 generated variants. These are referenced by 4 Candidate and 2 Complaint
-draft/published relations, which is why relation counts are higher than media-file
-counts.
-
 Production still needs restricted CORS, rate limiting, malware scanning, private
 data retention rules and cleanup for unattached uploads.
 
@@ -150,6 +124,10 @@ defined by `migration_data/shareholder_relation_category.json` and
 created. Uploaded files are organized in the root Media Library folder
 **Shareholding Relation**. Validate the local migration data without contacting
 Strapi first:
+
+Each category's `slug` is written to the Shareholder Relation Category record so
+the website can use it as the `shareholder_type` query value. A missing slug in
+the migration data is normalized to an empty string.
 
 Each report's `file_path` may be either an HTTP(S) file URL or a filename stored
 in `migration_data/files/`. Files may use any type supported by the configured
@@ -219,6 +197,33 @@ for manual orphan review instead of being deleted automatically.
 
 Shareholder report titles use Strapi's long-text field so regulatory titles are
 stored completely instead of being truncated at 255 characters.
+
+## Financial Report seed
+
+`scripts/seed_financial_reports.js` creates or updates published Financial Report
+entries from `migration_data/financial_reports.json`. Reports match by fiscal
+year, report type, quarter and the source URL stored in the Media Library caption.
+Full Year records use `quarter: null`; Quarter records require an integer from 1
+through 4. Remote files are stored in the root **Financial Reports** Media Library
+folder. Matching files are reused, while replaced media is retained for manual
+orphan review.
+
+Validate the JSON and inspect the remote files without logging in or changing
+Strapi:
+
+```bash
+npm run seed:financial-reports -- --dry-run
+```
+
+Applying the seed requires a running Strapi instance and Super Admin credentials
+provided only through the process environment:
+
+```bash
+STRAPI_ADMIN_EMAIL="----@gmail.com" STRAPI_ADMIN_PASSWORD="-----" STRAPI_URL="http://localhost:1337" npm run seed:financial-reports
+```
+
+Unavailable or empty source files are logged and skipped. Upload or record-save
+errors are fatal. The script never deletes existing entries or replaced media.
 
 ## RichText++ (MarkDown) editor
 
@@ -300,3 +305,9 @@ and builds the plugin through the root build command. It keeps build dependencie
 in its single-stage image. `.dockerignore` excludes nested `node_modules`, `dist`,
 build caches, and browser-test output so local workstation artifacts cannot
 replace dependencies or generated files created inside the image.
+
+
+## Scripts
+- Financial reports: `STRAPI_ADMIN_EMAIL="----@gmail.com" STRAPI_ADMIN_PASSWORD="-----" STRAPI_URL="http://localhost:1337" node financial_reports.json
+`
+- Shareholder relations: `STRAPI_ADMIN_EMAIL="----@gmail.com" STRAPI_ADMIN_PASSWORD="-----" STRAPI_URL="http://localhost:1337" node shareholder_relations.json`

@@ -710,7 +710,6 @@ export interface ApiFinancialReportFinancialReport
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
     quarter: Schema.Attribute.Integer &
-      Schema.Attribute.Required &
       Schema.Attribute.SetMinMax<
         {
           max: 4;
