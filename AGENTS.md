@@ -70,14 +70,8 @@
   `@strapi/plugin-users-permissions` implementation before making claims about
   Strapi defaults because defaults are version-sensitive.
 
-## Migration and seed scripts
+## Seed scripts
 
-- Treat `scripts/private-media-migration.js` as a staged operation: `dry-run`,
-  `apply`, then `finalize --confirm-delete-public-copies`. Never run `apply` or
-  `finalize` without explicit approval, a current database backup, and verified
-  bucket access.
-- Finalization is destructive. Resolve and verify exact source and destination
-  objects before deletion; do not broaden its scope or bypass verification.
 - `scripts/seed_shareholder_relation.js --dry-run` is the default safe check.
   Running the seed against Strapi requires explicit approval and credentials only
   through the process environment. Never place credentials in source, fixtures,

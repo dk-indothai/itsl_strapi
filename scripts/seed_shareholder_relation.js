@@ -11,6 +11,8 @@
  *
  * Migration data:
  * - Reads migration_data/shareholder_relation_category.json.
+ * - Each category slug is stored with the category; a missing slug becomes an
+ *   empty string.
  * - file_path accepts an HTTP(S) URL or a filename from migration_data/files/.
  * - File types must be permitted by Strapi's Media Library configuration.
  * - Empty file_path entries are logged by title and skipped.
@@ -208,6 +210,10 @@ async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
       category.name,
       `Category ${categoryIndex + 1} name`,
     );
+    if (category.slug != null && typeof category.slug !== "string") {
+      throw new Error(`${category.name} slug must be a string.`);
+    }
+    category.slug = category.slug?.trim() || "";
     if (categoryNames.has(category.name)) {
       throw new Error(`Duplicate category: ${category.name}`);
     }
@@ -247,6 +253,13 @@ async function readSeedData(dataFile = DATA_FILE, log = console.warn) {
     category.shareholder_relation = reportsWithFiles;
   }
   return categories;
+}
+
+function buildCategoryData(category) {
+  return {
+    name: category.name,
+    slug: category.slug?.trim() || "",
+  };
 }
 
 async function validateReportFiles(
@@ -560,7 +573,7 @@ async function seed({ categories, api, log = console.log }) {
       api,
       CATEGORY,
       existingCategory?.documentId,
-      { name: input.name },
+      buildCategoryData(input),
     );
     log(`${existingCategory ? "Updated" : "Created"} category: ${input.name}`);
 
@@ -692,6 +705,7 @@ if (require.main === module) {
 module.exports = {
   MEDIA_FOLDER_NAME,
   PUBLIC_ACTIONS,
+  buildCategoryData,
   buildReportData,
   createApi,
   findSavedReport,

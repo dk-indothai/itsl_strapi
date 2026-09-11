@@ -2,6 +2,7 @@
   "shareholder_relation_category": [
     {
       "name": "Corporate Governance Report",
+      "slug": "corporate_report",
       "shareholder_relation": [
         {
           "title": "Integrated Governance_30.06.2026",
@@ -307,6 +308,7 @@
     },
     {
       "name": "Shareholding Pattern",
+      "slug": "shareholding_pattern",
       "shareholder_relation": [
         {
           "title": "Shareholding Pattern_30.06.2026",
@@ -607,6 +609,7 @@
     },
     {
       "name": "Reconciliation of Share Capital Audit Report",
+      "slug": "reconciliationreport",
       "shareholder_relation": [
         {
           "title": "ROSCAR_30.06.2026",
@@ -907,6 +910,7 @@
     },
     {
       "name": "Notice of Meeting",
+      "slug": "notice_of_meeting",
       "shareholder_relation": [
         {
           "title": "Notice of Annual General Meeting to be held on September 19, 2026",
@@ -1377,6 +1381,7 @@
     },
     {
       "name": "Outcome of Meeting",
+      "slug": "outcome_of_meeting",
       "shareholder_relation": [
         {
           "title": "Outcome of Board Meeting dated 14th August 2026",
@@ -1952,6 +1957,7 @@
     },
     {
       "name": "Certificate Under Regulation 40(9)",
+      "slug": "certificate409",
       "shareholder_relation": [
         {
           "title": "Certificate Under Regulation 74(5)_31122024",
@@ -2082,6 +2088,7 @@
     },
     {
       "name": "Newspaper Cutting",
+      "slug": "newspaper_cutting",
       "shareholder_relation": [
         {
           "title": "Copy of Newspaper Publication dated 27th August, 2026",
@@ -2602,6 +2609,7 @@
     },
     {
       "name": "Other Information",
+      "slug": "other_information",
       "shareholder_relation": [
         {
           "title": "Form_MGT_7_2025-26",
@@ -3442,6 +3450,7 @@
     },
     {
       "name": "Annual Reports",
+      "slug": "annual_reports",
       "shareholder_relation": [
         {
           "title": "32nd Annual Report_2025-26",
@@ -3532,6 +3541,7 @@
     },
     {
       "name": "Quarterly Results",
+      "slug": "quarterly_results",
       "shareholder_relation": [
         {
           "title": "Financial Results for the 1st quarter ended 30th June, 2026",
@@ -3892,6 +3902,7 @@
     },
     {
       "name": "Public Issue Documents",
+      "slug": "publicissuedocuments",
       "shareholder_relation": [
         {
           "title": "Prospectus – Dated 24th October, 2011",
@@ -3917,6 +3928,7 @@
     },
     {
       "name": "Complaint Status",
+      "slug": "complaint_status",
       "shareholder_relation": [
         {
           "title": "Statement of Investor Complaints_31.12.2024",
@@ -4177,6 +4189,7 @@
     },
     {
       "name": "Disclosures under SEBI (SAST) Regulations, 2011",
+      "slug": "disclosuressebisast",
       "shareholder_relation": [
         {
           "title": "Continual Disclosure_Regulation 30(2)_31st March, 2018",
@@ -4382,6 +4395,7 @@
     },
     {
       "name": "Disclosures under SEBI (Prohibition of Insider Trading) Regulations, 1992",
+      "slug": "disclosuresunderseb",
       "shareholder_relation": [
         {
           "title": "Disclosure_under_SEBI_PIT_Regn_25032015",
@@ -4557,6 +4571,7 @@
     },
     {
       "name": "Policies",
+      "slug": "policies",
       "shareholder_relation": [
         {
           "title": "Dividend Distribution Policy",
@@ -4782,6 +4797,7 @@
     },
     {
       "name": "Unpaid Dividends",
+      "slug": "unpaid_dividends",
       "shareholder_relation": [
         {
           "title": "2022",
@@ -4827,6 +4843,7 @@
     },
     {
       "name": "Secretarial Compliance Report",
+      "slug": "secretarialcomplian",
       "shareholder_relation": [
         {
           "title": "Annual Secretarial Compliance Report_31032026",
@@ -4872,6 +4889,7 @@
     },
     {
       "name": "Disclosure of Related Party Transactions",
+      "slug": "partytransactions",
       "shareholder_relation": [
         {
           "title": "Disclosure of Related Party Transactions_31.03.2024",
@@ -4932,6 +4950,7 @@
     },
     {
       "name": "Trading Window Closure",
+      "slug": "tradingwindowclosure",
       "shareholder_relation": [
         {
           "title": "Intimation of Closure of Trading Window_30.06.2026",
@@ -5092,6 +5111,7 @@
     },
     {
       "name": "Compliance Certificate",
+      "slug": "compliancertificate",
       "shareholder_relation": [
         {
           "title": "Compliance Certificate pursuant to Regulation 7(3)_31.03.2024",
@@ -5167,6 +5187,7 @@
     },
     {
       "name": "Certificate Under Regulation 74(5)",
+      "slug": "certificateregul745",
       "shareholder_relation": [
         {
           "title": "Certificate Under Regulation 74(5)_30062026",
@@ -5307,6 +5328,7 @@
     },
     {
       "name": "Knowledge Center",
+      "slug": "knowledgecenter",
       "shareholder_relation": [
         {
           "title": "Demat",
@@ -5317,6 +5339,7 @@
     },
     {
       "name": "Transfer to IEPF",
+      "slug": "transfertoiepf",
       "shareholder_relation": [
         {
           "title": "IEPF_DATA_19_07_2025",
@@ -5367,6 +5390,7 @@
     },
     {
       "name": "Preferential Issue",
+      "slug": "preferential_issue",
       "shareholder_relation": [
         {
           "title": "Testing",
@@ -5457,6 +5481,7 @@
     },
     {
       "name": "Demerger of Broking and Distribution Business",
+      "slug": "scheme_arrangement",
       "shareholder_relation": [
         {
           "title": "Indo Thai Securities Limited has submitted the Exchange a copy Srutinizers report of Court Convened Unsecured creditors held on July 24, 2026. Further, the company has informed the Exchange regarding voting results.",
@@ -5557,6 +5582,7 @@
     },
     {
       "name": "Contact Details of KMP authorized for the purpose of determining materiality of an event or information",
+      "slug": "kmp_contact_details",
       "shareholder_relation": [
         {
           "title": "Contact Details of KMP authorized for the purpose of determining materiality of an event or an information",
@@ -5567,6 +5593,7 @@
     },
     {
       "name": "Audited Financial Results of Subsidaries",
+      "slug": "audited_sub_results",
       "shareholder_relation": [
         {
           "title": "Indo Thai Realties Limited_31032025",
@@ -5587,6 +5614,7 @@
     },
     {
       "name": "Build-up of Equity Share Capital",
+      "slug": "builtupequityshare",
       "shareholder_relation": [
         {
           "title": "Equity Share Capital built",

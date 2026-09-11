@@ -20,6 +20,9 @@
       "relation": "oneToMany",
       "target": "api::shareholder-relation.shareholder-relation",
       "mappedBy": "shareholder_relation_category"
+    },
+    "slug": {
+      "type": "string"
     }
   }
 }

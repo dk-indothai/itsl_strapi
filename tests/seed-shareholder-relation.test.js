@@ -6,6 +6,7 @@ const test = require("node:test");
 const {
   MEDIA_FOLDER_NAME,
   PUBLIC_ACTIONS,
+  buildCategoryData,
   buildReportData,
   createApi,
   findSavedReport,
@@ -28,6 +29,11 @@ test("the checked-in shareholder migration data is valid", async () => {
     skipped.push(message);
   });
   assert.ok(categories.length > 0);
+  assert.ok(categories.every((category) => typeof category.slug === "string"));
+  assert.equal(
+    categories.find((category) => category.name === "Annual Reports")?.slug,
+    "annual_reports",
+  );
   assert.ok(
     categories.every((category) =>
       category.shareholder_relation.every(
@@ -51,6 +57,17 @@ test("the checked-in shareholder migration data is valid", async () => {
     "same-title reports with different files should be retained",
   );
   assert.ok(skipped.every((message) => message.startsWith("Skipped ")));
+});
+
+test("category payload carries the migration slug", () => {
+  assert.deepEqual(
+    buildCategoryData({ name: "Annual Reports", slug: "annual_reports" }),
+    { name: "Annual Reports", slug: "annual_reports" },
+  );
+  assert.deepEqual(buildCategoryData({ name: "Legacy category" }), {
+    name: "Legacy category",
+    slug: "",
+  });
 });
 
 test("normalizes migration dates from Asia/Kolkata and rejects invalid dates", () => {
